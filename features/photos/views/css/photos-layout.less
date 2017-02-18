@@ -1,0 +1,107 @@
+@import "web";
+
+.photos-layout {
+  position: absolute;
+  top: 0;
+  left: 2rem;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+
+  .photos-layout-container {
+    position: relative;
+  }
+
+  .photos-layout-content {
+    position: absolute;
+    left: 0;
+    right: 0;
+
+    .photos-layout-content-space {
+      height: 5rem;
+    }
+
+    h2 {
+      height: 22px;
+      font-size: 1.8rem;
+      margin: 0;
+      padding: 1.5rem 0.5rem 0.5rem;
+      clear: both;
+      overflow: hidden;
+    }
+
+    .photos-layout-photo, .photos-layout-photo:hover, .photos-layout-photo:visited {
+      text-decoration: none;
+      border: 0;
+      color: white;
+    }
+
+    .photos-layout-photo {
+      .noselect(pointer);
+      display: block;
+      position: relative;
+      float: left;
+      width: 120px;
+      height: 120px;
+      margin: 0.5rem 0 0 0.5rem;
+      overflow: hidden;
+      background-color: #efefef;
+      background-position: center;
+      background-size: cover;
+
+      &.is-video::after {
+        display: inline-block;
+        font: normal normal normal 14px/1 FontAwesome;
+        font-size: inherit;
+        text-rendering: auto;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+
+        content: '\f04b';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 50%;
+        height: 50%;
+        overflow: hidden;
+        border: 2px solid rgba(255, 255, 255, 0.9);
+        color: rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.3);
+        .transform(translateX(-50%), translateY(-50%));
+        font-size: 3.6rem;
+        text-align: center;
+        box-sizing: border-box;
+        padding-top: 1rem;
+        text-indent: 8px;
+      }
+    }
+  }
+}
+
+.media-mobile, .media-tablet {
+  .photos-layout {
+    left: 0;
+    right: 0;
+
+    .photos-layout-content {
+      h2 {
+        padding: 1.5rem 1rem 0.2rem;
+        font-weight: 400;
+        font-size: 1.4rem;
+      }
+
+      .photos-layout-photo {
+        margin: 0.2rem 0 0 0.2rem;
+        width: 70px;
+        height: 70px;
+
+        &.is-video::after {
+          font-size: 2rem;
+          padding-top: 0.5rem;
+          text-indent: 4px;
+        }
+      }
+    }
+  }
+}

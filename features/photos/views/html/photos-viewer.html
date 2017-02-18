@@ -1,0 +1,27 @@
+<div
+  class="
+    photos-viewer
+    {{display ? 'enabled' : ''}}
+    {{closing ? 'closing' : ''}}
+    {{preloading ? 'preload' : ''}}
+    {{move ? 'move' : ''}}
+    {{playing ? 'playing' : ''}}
+  "
+  style="margin-left: {{scrollLeft}}px"
+>
+  {{#photos}}
+    <div
+      class="photos-viewer-photo {{isVideo ? 'is-video' : ''}}"
+      style="{{!isVideo ? 'background-image: url(\'' + thumbnail + '\');' : ''}}"
+    >
+      {{#if isVideo}}
+        <video
+          x-webkit-airplay="allow" controls="controls" preload="none" poster="{{thumbnail}}" src="{{url}}" on-click="play"
+        ></video>
+        <div class="photos-viewer-play fa fa-play" on-click="play"></div>
+      {{/if}}
+    </div>
+  {{/photos}}
+</div>
+
+<div class="photos-viewer-date {{displayDate ? 'show' : ''}}">{{date}}</div>

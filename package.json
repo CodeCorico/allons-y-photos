@@ -1,0 +1,26 @@
+{
+  "name": "allons-y-photos",
+  "version": "0.1.0",
+  "description": "Photos app.",
+  "license": "MIT",
+  "homepage": "https://allons-y.io",
+  "author": "CodeCorico <hello@codecorico.com>",
+  "bugs": "https://github.com/CodeCorico/allons-y-photos/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CodeCorico/allons-y-photos.git"
+  },
+  "engines": {
+    "node": ">=4.1",
+    "npm": ">=3.2"
+  },
+  "devDependencies": {
+    "allons-y-dev-chore": "^1.0.0"
+  },
+  "dependencies": {
+    "allons-y-community": "^1.1.0",
+    "async": "^2.1.4",
+    "extend": "^3.0.0",
+    "fluent-ffmpeg": "^2.1.0"
+  }
+}

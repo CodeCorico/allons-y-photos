@@ -1,0 +1,26 @@
+<div class="photos-layout">
+  <rv-require name="pl-scrolls" src="/public/vendor/plumes/scrolls/pl-scrolls"></rv-require>
+
+  <div class="pl-scrolls">
+
+    <div class="photos-layout-container" style="height: {{containerHeight}}px;">
+      <div class="photos-layout-content" style="top: {{contentTop}}px;">
+        <div class="photos-layout-content-space"></div>
+        {{#dates}}
+          <h2>{{dateTitle}}</h2>
+          {{#photos}}
+            <a
+              href="#{{index}}"
+              class="photos-layout-photo {{isVideo ? 'is-video' : ''}}"
+              style="background-image: url('{{cover}}');"
+            ></a>
+          {{/photos}}
+        {{/dates}}
+
+        <div class="clear"></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>

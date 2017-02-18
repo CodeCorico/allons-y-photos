@@ -1,0 +1,22 @@
+<div class="photos-nav">
+  <rv-require name="pl-scrolls" src="/public/vendor/plumes/scrolls/pl-scrolls"></rv-require>
+
+  <div class="pl-scrolls">
+    <section class="pl-section">
+      <div class="photos-nav-content">
+        <h2>{{_('Dates')}}</h2>
+
+        {{#months}}
+          <h3>{{title}}</h3>
+          {{#days}}
+            <div
+              class="photos-nav-day {{id == dateSelectedId ? 'selected' : ''}}"
+              on-click="toAnchor"
+            >{{day}}</div>
+          {{/days}}
+          <div class="clear"></div>
+        {{/months}}
+      </div>
+    </section>
+  </div>
+</div>
