@@ -27,6 +27,7 @@
   }
 
   .photos-viewer-photo {
+    cursor: pointer;
     position: absolute;
     top: 0;
     left: 33.33333333%;
@@ -93,20 +94,46 @@
   }
 }
 
+.photos-viewer-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5rem;
+  height: 5rem;
+  background: black;
+  color: white;
+  .transition(bottom 0.15s @easeInOutQuad);
+  text-align: center;
+
+  &.show {
+    bottom: 0;
+  }
+
+  a, a:hover, a:visited {
+    color: white;
+    text-decoration: none;
+  }
+
+  i {
+    font-size: 3rem;
+    margin-top: 1rem;
+  }
+}
+
 .photos-viewer-date {
   position: absolute;
   top: -40px;
   left: 50%;
   .transform(translateX(-50%));
   padding: 0.2rem 1.5rem;
-  border-radius: 2rem;
   background: @accentColor;
   color: white;
   font-weight: 400;
   font-size: 1.8rem;
-  .transition(top 0.35s @easeInOutQuad);
+  .transition(top 0.55s @easeInBack);
 
   &.show {
     top: 10px;
+    .transition(top 0.55s @easeOutBack);
   }
 }

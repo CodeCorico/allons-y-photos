@@ -9,7 +9,8 @@
     var PhotosViewer = $component({
           data: $.extend(true, {
             scrollLeft: 0,
-            move: false
+            move: false,
+            displayBar: false
           }, $data)
         }),
         _scroll = {
@@ -22,7 +23,8 @@
         _$video = null,
         _$el = {
           window: $(window),
-          viewer: $(PhotosViewer.el)
+          viewer: $(PhotosViewer.el),
+          bar: $(PhotosViewer.el).find('.photos-viewer-bar')
         };
 
     function _keyup(event) {
@@ -98,12 +100,13 @@
         return;
       }
 
-      var eventType = (
+      var isTouch = event.type.substr(0, 'touch'.length) == 'touch',
+          eventType = (
             event.type == 'touchstart' || event.type == 'mousedown' ? 'start' : (
             event.type == 'touchend' || event.type == 'mouseup' ? 'end' : (
             event.type == 'touchmove' || event.type == 'mousemove' ? 'move' : false
           ))),
-          touch = event.type.substr(0, 'touch'.length) == 'touch' ? (
+          touch = isTouch ? (
             event.changedTouches && event.changedTouches.length ? event.changedTouches[0] : false
           ) : event;
 
@@ -124,8 +127,13 @@
         if (eventType == 'end') {
           delete _scroll.startX;
 
-          if (scrollLeft === 0 && _$video) {
-            _$video.click();
+          if (scrollLeft === 0) {
+            if (_$video && isTouch) {
+              _$video.click();
+            }
+            else if (!_$video) {
+              PhotosViewer.set('displayBar', !PhotosViewer.get('displayBar'));
+            }
 
             return;
           }
@@ -150,13 +158,13 @@
       _index = window.location.hash.replace('#', '');
       _index = _index ? parseInt(_index, 10) : false;
 
-      _photosLength = $PhotosService.photos().length;
+      _photosLength = $PhotosService.config('photos').length;
 
       _view();
     }
 
     function _view() {
-      var photos = $PhotosService.photos(),
+      var photos = $PhotosService.config('photos'),
           preload = false;
 
       if (!PhotosViewer.get('display')) {
@@ -192,6 +200,7 @@
 
           PhotosViewer.set('photos', []);
           PhotosViewer.set('display', false);
+          PhotosViewer.set('displayBar', false);
           PhotosViewer.set('closing', false);
         }, 350);
 
@@ -234,6 +243,8 @@
       ]);
 
       if (photos[_index].isVideo) {
+        PhotosViewer.set('displayBar', false);
+
         _$video = _$el.viewer.find('.photos-viewer-photo:nth-child(2) video');
 
         _$video.on('play', _videoPlay);
@@ -254,8 +265,6 @@
         img.src = photos[_index].thumbnail;
       }
     }
-
-    $PhotosService.onSafe('photosViewerController.view', _fromHash);
 
     $PhotosService.onSafe('photosViewerController.teardown', function() {
       PhotosViewer.teardown();
@@ -293,6 +302,11 @@
     _$el.window.on('hashchange', _fromHash);
     _$el.window.on('keyup', _keyup);
 
+    _$el.bar.on('mousedown', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+
     PhotosViewer.el.addEventListener('touchstart', _scrolling, false);
     PhotosViewer.el.addEventListener('touchend', _scrolling, false);
     PhotosViewer.el.addEventListener('touchmove', _scrolling, false);
@@ -302,11 +316,11 @@
 
     PhotosViewer.require().then(function() {
       if (window.location.hash) {
-        if ($PhotosService.photos()) {
+        if ($PhotosService.config('photos')) {
           _fromHash();
         }
         else {
-          $PhotosService.on('photosViewerControllerTemp.photos', function() {
+          $PhotosService.on('photosViewerControllerTemp.photosConfigChanged', function() {
             setTimeout(function() {
               $PhotosService.offNamespace('photosViewerControllerTemp');
             });

@@ -2,17 +2,36 @@
   'use strict';
 
   window.Ractive.controllerInjection('photos-nav', [
-    '$PhotosService', '$component', '$data', '$done',
+    '$PhotosService', '$Layout', '$component', '$data', '$done',
   function photosNavController(
-    $PhotosService, $component, $data, $done
+    $PhotosService, $Layout, $component, $data, $done
   ) {
     var PhotosNav = $component({
-      data: $data
+      data: $.extend(true, {
+        photosLength: 0,
+        videosLength: 0,
+        moments: [],
+        isMomentSelected: false
+      }, $data)
     });
 
-    function _dates(args) {
-      if (!args || !args.dates) {
+    function _closeOnNotDesktop() {
+      $Layout.closeOnNotDesktop('group-photos-nav');
+    }
+
+    function _dates(args, deferred) {
+      if (!args || !args.value) {
         return;
+      }
+
+      if (!deferred) {
+        return setTimeout(function() {
+          if (!PhotosNav) {
+            return;
+          }
+
+          _dates(args, true);
+        });
       }
 
       var thisYear = new Date().getFullYear(),
@@ -21,7 +40,7 @@
           lastMonth = null,
           lastDay = null;
 
-      args.dates.forEach(function(date, index) {
+      args.value.forEach(function(date, index) {
         var dateId = window.moment(date.date).format('MMMM YYYY D'),
             date = dateId.split(' ');
 
@@ -50,22 +69,71 @@
       });
 
       PhotosNav.set('months', months);
+
+      if (args.value.length) {
+        _dateAnchor({
+          value: args.value[0]
+        });
+      }
     }
+
+    $PhotosService.onSafe('photosNavController.datesConfigChanged', _dates);
+
+    function _moments(args) {
+      PhotosNav.set('moments', args.value);
+    }
+
+    $PhotosService.onSafe('photosNavController.momentsConfigChanged', _moments);
 
     function _dateAnchor(args) {
-      PhotosNav.set('dateSelectedId', window.moment(args.date.date).format('MMMM YYYY D'));
+      PhotosNav.set('dateSelectedId', window.moment(args.value.date).format('MMMM YYYY D'));
     }
 
-    $PhotosService.onSafe('photosNavController.dates', _dates);
-    $PhotosService.onSafe('photosNavController.datesAnchor', _dateAnchor);
+    $PhotosService.onSafe('photosNavController.dateAnchorConfigChanged', _dateAnchor);
+
+    function _lengths(args) {
+      PhotosNav.set('photosLength', args.value.photosLength);
+      PhotosNav.set('videosLength', args.value.videosLength);
+    }
+
+    $PhotosService.onSafe('photosNavController.lengthsConfigChanged', _lengths);
+
+    function _momentSelected(args) {
+      var moments = PhotosNav.get('moments');
+
+      args.value = args.value || '';
+
+      for (var i = 0; i < moments.length; i++) {
+        if (moments[i].title == args.value) {
+          PhotosNav.set('moments.' + i + '.selected', true);
+        }
+        else if (moments[i].selected) {
+          PhotosNav.set('moments.' + i + '.selected', false);
+        }
+      }
+    }
+
+    $PhotosService.onSafe('photosNavController.momentSelectedConfigChanged', _momentSelected);
 
     PhotosNav.on('toAnchor', function(event) {
-      $PhotosService.toAnchor(event.context.index);
+      _closeOnNotDesktop();
+
+      $PhotosService.config('anchor', event.context.index);
     });
 
     $PhotosService.onSafe('photosNavController.teardown', function() {
       PhotosNav.teardown();
       PhotosNav = null;
+    });
+
+    PhotosNav.on('selectMoment', function(event) {
+      if (event.context.selected) {
+        return;
+      }
+
+      _closeOnNotDesktop();
+
+      $PhotosService.config('momentSelected', event.context.title);
     });
 
     PhotosNav.on('teardown', function() {
@@ -75,15 +143,33 @@
     });
 
     PhotosNav.require().then(function() {
-      if ($PhotosService.dates()) {
+      if ($PhotosService.config('dates')) {
         _dates({
-          dates: $PhotosService.dates()
+          value: $PhotosService.config('dates')
         });
       }
 
-      if ($PhotosService.dateAnchor()) {
+      if ($PhotosService.config('moments')) {
+        _moments({
+          value: $PhotosService.config('moments')
+        });
+      }
+
+      if ($PhotosService.config('dateAnchor')) {
         _dateAnchor({
-          date: $PhotosService.dateAnchor()
+          value: $PhotosService.config('dateAnchor')
+        });
+      }
+
+      if ($PhotosService.config('lengths')) {
+        _lengths({
+          value: $PhotosService.config('lengths')
+        });
+      }
+
+      if ($PhotosService.config('momentSelected')) {
+        _momentSelected({
+          value: $PhotosService.config('momentSelected')
         });
       }
 

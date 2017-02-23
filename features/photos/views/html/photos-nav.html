@@ -4,6 +4,20 @@
   <div class="pl-scrolls">
     <section class="pl-section">
       <div class="photos-nav-content">
+        <span class="photos-nav-lengths">{{photosLength}}</span> {{_('photos')}} -
+        <span class="photos-nav-lengths">{{videosLength}}</span> {{_('videos')}}
+
+        <h2>{{_('Moments')}}</h2>
+        {{#moments}}
+          <div class="photos-nav-moment {{title ? '' : 'is-title'}} {{selected ? 'selected' : ''}}" on-click="selectMoment">
+            {{title || _('All')}}
+            {{#if title}}
+              <span>{{count}}</span>
+            {{/if}}
+          </div>
+        {{/moments}}
+        <div class="clear"></div>
+
         <h2>{{_('Dates')}}</h2>
 
         {{#months}}

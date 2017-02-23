@@ -19,7 +19,8 @@ module.exports = function() {
 
     return $AbstractModel('PhotoModel', function() {
 
-      var extend = require('extend');
+      var extend = require('extend'),
+          async = require('async');
 
       return {
         identity: 'photos',
@@ -51,6 +52,10 @@ module.exports = function() {
           },
           cover: 'string',
           isVideo: 'boolean',
+          moments: {
+            type: 'array',
+            index: true
+          },
 
           publicData: function(moreData, remove) {
             var photo = this.toJSON();
@@ -93,8 +98,10 @@ module.exports = function() {
           $RealTimeService.registerEvents(REALTIME_EVENTS);
         },
 
-        callPhotos: function($socket, eventName, args, callback) {
+        callPhotos: function($socket, eventName, args, callback, momentUpdated, socketOrigin) {
           eventName = eventName || 'photos';
+
+          var sockets = $socket ? [$socket] : $RealTimeService.socketsFromOrigin(eventName);
 
           this
             .find()
@@ -106,19 +113,122 @@ module.exports = function() {
                 return callback();
               }
 
+              var photosLength = 0,
+                  videosLength = 0;
+
               photos = photos.map(function(photo) {
+                if (photo.isVideo) {
+                  videosLength++;
+                }
+                else {
+                  photosLength++;
+                }
+
                 return {
                   cover: photo.cover,
                   shotTime: photo.shotTime,
                   isVideo: photo.isVideo,
                   thumbnail: photo.thumbnail,
-                  url: photo.url
-                }
+                  url: photo.url,
+                  moments: photo.moments
+                };
               });
 
-              $RealTimeService.fire(eventName, {
+              var eventResult = {
+                photosLength: photosLength,
+                videosLength: videosLength,
                 photos: photos
-              }, $socket);
+              };
+
+              if (momentUpdated) {
+                eventResult.momentUpdated = momentUpdated;
+              }
+
+              sockets.forEach(function(socket) {
+                eventResult.isOrigin = socket == $socket || socket == socketOrigin || false;
+
+                $RealTimeService.fire(eventName, eventResult, socket);
+              });
+            });
+        },
+
+        updateMoment: function($socket, name, photos) {
+          var _this = this;
+
+          this
+            .find({
+              url: photos
+            })
+            .exec(function(err, photos) {
+              if (err || !photos || !photos.length) {
+                return;
+              }
+
+              async.eachSeries(photos, function(photo, nextPhoto) {
+                photo.moments = photo.moments || [];
+
+                if (photo.moments.indexOf(name) > -1) {
+                  return nextPhoto();
+                }
+
+                photo.moments.push(name);
+
+                _this
+                  .update({
+                    id: photo.id
+                  }, {
+                    moments: photo.moments
+                  })
+                  .exec(function() {
+                    nextPhoto();
+                  });
+              }, function() {
+                setTimeout(function() {
+                  _this.callPhotos(null, null, null, null, name, $socket);
+                });
+              });
+
+            });
+        },
+
+        deleteMoment: function($socket, name, photos) {
+          var _this = this;
+
+          this
+            .find({
+              url: photos
+            })
+            .exec(function(err, photos) {
+              if (err || !photos || !photos.length) {
+                return;
+              }
+
+              async.eachSeries(photos, function(photo, nextPhoto) {
+                photo.moments = photo.moments || [];
+
+                var index = photo.moments.indexOf(name);
+
+                if (index < 0) {
+                  return nextPhoto();
+                }
+
+                photo.moments.splice(index, 1);
+
+                _this
+                  .update({
+                    id: photo.id
+                  }, {
+                    moments: photo.moments
+                  })
+                  .exec(function() {
+                    nextPhoto();
+                  });
+              }, function() {
+                setTimeout(function() {
+                  _this.callPhotos(null, null, null, null, name, $socket);
+                });
+              });
+
             });
         }
       };

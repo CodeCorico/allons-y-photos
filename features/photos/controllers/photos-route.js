@@ -22,10 +22,14 @@ module.exports = {
 
     $Layout.selectApp('Photos', false);
 
+    var $PhotosService = null;
+
     setTimeout(function() {
       require('/public/photos/photos-service.js')
         .then(function() {
-          return DependencyInjection.injector.view.get('$PhotosService').init();
+          $PhotosService = DependencyInjection.injector.view.get('$PhotosService');
+
+          return $PhotosService.init();
         })
         .then(function() {
           return $Page.require('photos-viewer');
@@ -37,6 +41,17 @@ module.exports = {
             autoOpen: 'main',
             beforeGroup: function(context, $group, userBehavior, callback) {
               context.require('photos-nav').then(callback);
+            }
+          });
+
+          $Page.rightButtonAdd('photos-select', {
+            type: 'indicator',
+            image: '/public/photos/photos-pointer.png',
+            ready: function(button) {
+              $PhotosService.config('selectButton', button);
+            },
+            action: function() {
+              $PhotosService.toggleSelectionMode();
             }
           });
 
@@ -52,6 +67,7 @@ module.exports = {
 
     $Layout.leftContext().closeIfGroupOpened('group-photos-nav');
     $Page.leftButtonRemove('photos-nav');
+    $Page.rightButtonRemove('photos-select');
 
     $PhotosService.teardown(null, $next);
   }]

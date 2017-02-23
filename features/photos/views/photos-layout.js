@@ -10,17 +10,43 @@
           data: $.extend(true, {
             contentTop: 0,
             containerHeight: 300,
-            formatDate: function(date) {
-              if (!date) {
-                return '';
+            selectionModeActivated: false,
+
+            momentAddFocus: function(event, value, component) {
+              PhotosLayout.get('momentAddChange')(event, value, component);
+            },
+
+            momentAddChange: function(event, value, component) {
+              PhotosLayout.set('momentAddName', value);
+
+              if (!value) {
+                return component.clear();
               }
 
-              date = date.split('T');
+              value = value.toLowerCase();
 
-              return 'Generated the ' + date[0] + ' at ' + date[1].substr(0, 5);
+              var moments = $PhotosService.config('moments'),
+                  search = new RegExp('(' + value + ')', 'i'),
+                  list = [];
+
+              moments.forEach(function(moment) {
+                if (!moment.title || moment.title.toLowerCase() == value) {
+                  return;
+                }
+
+                if (search.test(moment.title)) {
+                  list.push({
+                    display: moment.title,
+                    value: moment.title
+                  });
+                }
+              });
+
+              component.set('list', list);
             }
           }, $data)
         }),
+        _selects = {},
         _$el = {
           window: $(window),
           scrolls: $($(PhotosLayout.el).find('.pl-scrolls')[0]),
@@ -32,7 +58,7 @@
     }
 
     function _defineView() {
-      var datesCache = PhotosLayout.get('datesCache'),
+      var datesSelection = PhotosLayout.get('datesSelection'),
           $content = _$el.container.find('.photos-layout-content'),
           $space = $content.find('.photos-layout-content-space'),
           $titleTemplate = $('<h2 />')
@@ -56,7 +82,7 @@
       $photoTemplate.remove();
       $photoTemplate = null;
 
-      datesCache.forEach(function(date) {
+      datesSelection.forEach(function(date) {
         date.top = containerHeight;
         containerHeight += titleHeight + (Math.ceil(date.photos.length / maxPhotoLine) * photoHeight);
         date.bottom = containerHeight;
@@ -70,7 +96,7 @@
     }
 
     function _updateView() {
-      var datesCache = PhotosLayout.get('datesCache'),
+      var datesSelection = PhotosLayout.get('datesSelection'),
           viewHeight = PhotosLayout.get('viewHeight'),
           containerHeight = PhotosLayout.get('containerHeight'),
           scrollTop = _$el.scrolls.scrollTop(),
@@ -78,22 +104,22 @@
           top = Math.max(spaceHeight, scrollTop - (viewHeight * 2)),
           bottom = Math.min(containerHeight, scrollTop + (viewHeight * 2)),
           start = null,
-          stop = datesCache.length;
+          stop = datesSelection.length;
 
-      for (var i = 0; i < datesCache.length; i++) {
+      for (var i = 0; i < datesSelection.length; i++) {
         if (start !== null) {
-          if (bottom < datesCache[i].top) {
+          if (bottom < datesSelection[i].top) {
             stop = i;
 
             break;
           }
         }
-        else if (top >= datesCache[i].top && top <= datesCache[i].bottom) {
+        else if (top >= datesSelection[i].top && top <= datesSelection[i].bottom) {
           start = i;
         }
 
-        if (scrollTop >= datesCache[i].top && scrollTop <= datesCache[i].bottom) {
-          $PhotosService.dateAnchor(datesCache[i]);
+        if (scrollTop >= datesSelection[i].top && scrollTop <= datesSelection[i].bottom) {
+          $PhotosService.config('dateAnchor', datesSelection[i]);
         }
       }
 
@@ -101,12 +127,12 @@
         return;
       }
 
-      PhotosLayout.set('contentTop', datesCache[start].top - spaceHeight);
-      PhotosLayout.set('dates', datesCache.slice(start, stop));
+      PhotosLayout.set('contentTop', datesSelection[start].top - spaceHeight);
+      PhotosLayout.set('dates', datesSelection.slice(start, stop));
     }
 
-    function _toAnchor(args) {
-      var top = PhotosLayout.get('datesCache.' + args.index + '.top');
+    function _anchor(args) {
+      var top = PhotosLayout.get('datesSelection.' + args.value + '.top');
 
       _$el.scrolls
         .stop()
@@ -119,52 +145,176 @@
         });
     }
 
-    $RealTimeService.realtimeComponent('photosLayoutController', {
-      name: 'photos',
-      update: function(event, args) {
-        if (!args || !args.photos) {
+    $PhotosService.onSafe('photosLayoutController.anchorConfigChanged', _anchor);
+
+    function _selectionMode(args) {
+      PhotosLayout.set('selectionModeActivated', args.value);
+
+      if (!args.value) {
+        Object.keys(_selects).forEach(function(keypath) {
+          PhotosLayout.set(keypath + '.selected', false);
+        });
+
+        _selects = {};
+
+        var button = $PhotosService.config('selectButton');
+
+        if (button) {
+          button.set('notificationsCount', 0);
+        }
+
+        PhotosLayout.set('displayMomentBar', false);
+
+        setTimeout(function() {
+          if (!PhotosLayout) {
+            return;
+          }
+
+          PhotosLayout.findChild('name', 'pl-autocomplete').clear();
+        }, 550);
+      }
+    }
+
+    $PhotosService.onSafe('photosLayoutController.selectionModeActivatedConfigChanged', _selectionMode);
+
+    function _momentSelected(args) {
+      var datesCache = PhotosLayout.get('datesCache'),
+          momentSelected = PhotosLayout.get('momentSelected'),
+          dates = [];
+
+      if (args.value === momentSelected) {
+        return;
+      }
+
+      PhotosLayout.set('toMoment', true);
+
+      setTimeout(function() {
+        if (!PhotosLayout) {
           return;
         }
 
-        var activeYear = new Date().getFullYear(),
-            datesCache = [],
-            i = -1,
-            lastTime = null;
+        PhotosLayout.set('toMoment', false);
+      }, 550);
 
-        $PhotosService.photos(args.photos);
+      PhotosLayout.set('momentSelected', args.value);
 
-        args.photos.forEach(function(photo, index) {
-          if (photo.shotTime != lastTime) {
-            lastTime = photo.shotTime;
-            i++;
+      if ($PhotosService.config('selectionModeActivated')) {
+        $PhotosService.config('selectionModeActivated', false);
+      }
 
-            var year = new Date(photo.shotTime).getFullYear();
+      if (!args.value) {
+        PhotosLayout.set('datesSelection', datesCache);
+        $PhotosService.config('dates', datesCache);
+      }
+      else {
+        datesCache.forEach(function(date) {
+          var photos = [];
 
-            datesCache[i] = {
-              date: lastTime,
-              dateTitle: window.moment(lastTime).format('D MMMM' + (year != activeYear ? ' YYYY' : '')),
-              photos: []
-            };
+          date.photos.forEach(function(photo) {
+            if (!photo.moments || !photo.moments.length) {
+              return;
+            }
+
+            if (photo.moments.indexOf(args.value) > -1) {
+              photos.push(photo);
+            }
+          });
+
+          if (photos.length) {
+            dates.push({
+              date: date.date,
+              dateTitle: date.dateTitle,
+              photos: photos
+            });
           }
-
-          photo.index = index;
-
-          datesCache[i].photos.push(photo);
         });
 
-        PhotosLayout.set('datesCache', datesCache);
-
-        $PhotosService.dates(datesCache);
-
-        _defineView();
+        PhotosLayout.set('datesSelection', dates);
+        $PhotosService.config('dates', dates);
       }
-    }, 'photos');
 
-    $PhotosService.onSafe('photosLayoutController.toAnchor', _toAnchor);
+      _$el.scrolls.scrollTop(0);
+
+      _defineView();
+      _updateView();
+    }
+
+    $PhotosService.onSafe('photosLayoutController.momentSelectedConfigChanged', _momentSelected);
 
     $PhotosService.onSafe('photosLayoutController.teardown', function() {
       PhotosLayout.teardown();
       PhotosLayout = null;
+    });
+
+    PhotosLayout.on('select', function(event) {
+      if (!PhotosLayout.get('selectionModeActivated')) {
+        return;
+      }
+
+      event.original.preventDefault();
+      event.original.stopPropagation();
+
+      var value = !PhotosLayout.get(event.keypath + '.selected');
+
+      PhotosLayout.set(event.keypath + '.selected', value);
+
+      if (value) {
+        _selects[event.keypath] = true;
+      }
+      else {
+        delete _selects[event.keypath];
+      }
+
+      var selectsLength = Object.keys(_selects).length,
+          button = $PhotosService.config('selectButton');
+
+      if (button) {
+        button.set('notificationsCount', selectsLength);
+      }
+
+      PhotosLayout.set('displayMomentBar', !!selectsLength);
+    });
+
+    PhotosLayout.on('addMoment', function() {
+      var momentAddName = (PhotosLayout.get('momentAddName') || '').trim();
+
+      if (!momentAddName) {
+        return;
+      }
+
+      var photos = Object.keys(_selects).map(function(keypath) {
+        return PhotosLayout.get(keypath + '.url');
+      });
+
+      if (!photos.length) {
+        return;
+      }
+
+      $socket.emit('update(photos/moment)', {
+        name: momentAddName,
+        photos: photos
+      });
+    });
+
+    PhotosLayout.on('removeMoment', function() {
+      var momentSelected = (PhotosLayout.get('momentSelected') || '').trim();
+
+      if (!momentSelected) {
+        return;
+      }
+
+      var photos = Object.keys(_selects).map(function(keypath) {
+        return PhotosLayout.get(keypath + '.url');
+      });
+
+      if (!photos.length) {
+        return;
+      }
+
+      $socket.emit('delete(photos/moment)', {
+        name: momentSelected,
+        photos: photos
+      });
     });
 
     PhotosLayout.on('teardown', function() {
@@ -183,6 +333,99 @@
 
     $Layout.on('leftContextOpened', _contextOpened);
     $Layout.on('rightContextOpened', _contextOpened);
+
+    $RealTimeService.realtimeComponent('photosLayoutController', {
+      name: 'photos',
+      update: function(event, args) {
+        if (!args || !args.photos) {
+          return;
+        }
+
+        var activeYear = new Date().getFullYear(),
+            datesCache = [],
+            momentsCache = {},
+            moments = [{
+              title: '',
+              selected: true
+            }],
+            i = -1,
+            lastTime = null;
+
+        $PhotosService.config('lengths', {
+          photosLength: args.photosLength,
+          videosLength: args.videosLength
+        });
+        $PhotosService.config('photos', args.photos);
+
+        args.photos.forEach(function(photo, index) {
+          if (photo.shotTime != lastTime) {
+            lastTime = photo.shotTime;
+            i++;
+
+            var year = new Date(photo.shotTime).getFullYear();
+
+            datesCache[i] = {
+              date: lastTime,
+              dateTitle: window.moment(lastTime).format('D MMMM' + (year != activeYear ? ' YYYY' : '')),
+              photos: []
+            };
+          }
+
+          photo.index = index;
+
+          datesCache[i].photos.push(photo);
+
+          if (!photo.moments || !photo.moments.length) {
+            return;
+          }
+
+          photo.moments.forEach(function(moment) {
+            if (typeof momentsCache[moment] == 'undefined') {
+              moments.push({
+                title: moment,
+                count: 0,
+                selected: false
+              });
+              momentsCache[moment] = moments.length - 1;
+            }
+
+            moments[momentsCache[moment]].count++;
+          });
+        });
+
+        moments.sort(function(a, b) {
+          if (a.title < b.title) {
+            return -1;
+          }
+          if (a.title > b.title) {
+            return 1;
+          }
+
+          return 0;
+        });
+
+        PhotosLayout.set('datesCache', datesCache);
+        PhotosLayout.set('datesSelection', datesCache);
+
+        $PhotosService.config('dates', datesCache);
+        $PhotosService.config('moments', moments);
+
+        _defineView();
+
+        if (args.momentUpdated) {
+          var momentExists = Object.keys(momentsCache).indexOf(args.momentUpdated) > -1;
+
+          if (PhotosLayout.get('momentSelected') == args.momentUpdated) {
+            PhotosLayout.set('momentSelected', null);
+
+            $PhotosService.config('momentSelected', momentExists ? args.momentUpdated : '');
+          }
+          else if (args.isOrigin) {
+            $PhotosService.config('momentSelected', momentExists ? args.momentUpdated : '');
+          }
+        }
+      }
+    }, 'photos');
 
     PhotosLayout.require().then($done);
   }]);

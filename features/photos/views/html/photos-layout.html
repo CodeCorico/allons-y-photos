@@ -1,4 +1,4 @@
-<div class="photos-layout">
+<div class="photos-layout {{selectionModeActivated ? 'select-mode' : ''}} {{toMoment ? 'to-moment' : ''}}">
   <rv-require name="pl-scrolls" src="/public/vendor/plumes/scrolls/pl-scrolls"></rv-require>
 
   <div class="pl-scrolls">
@@ -13,7 +13,16 @@
               href="#{{index}}"
               class="photos-layout-photo {{isVideo ? 'is-video' : ''}}"
               style="background-image: url('{{cover}}');"
-            ></a>
+              on-click="select"
+            >
+              {{#if selectionModeActivated}}
+                <div class="photos-layout-photo-check {{selected ? 'selected' : ''}}" on-click="select">
+                  {{#if selected}}
+                    <i class="fa fa-check"></i>
+                  {{/if}}
+                </div>
+              {{/if}}
+            </a>
           {{/photos}}
         {{/dates}}
 
@@ -23,4 +32,25 @@
 
   </div>
 
+  <div class="photos-layout-remove-moment-bar {{displayMomentBar && momentSelected ? 'show' : ''}}">
+    <button class="photos-layout-remove-moment" on-click="removeMoment">remove from this moment</button>
+  </div>
+
+  <div class="photos-layout-moments-bar {{displayMomentBar ? 'show' : ''}}">
+    <rv-require
+      name="pl-autocomplete"
+      src="/public/vendor/plumes/autocomplete/pl-autocomplete"
+      class="photos-layout-moments-list-container"
+
+      data-placeholder="{{_('Add to a moment...')}}"
+      data-cls="photos-layout-moments-list"
+      data-selectioncls="photos-layout-moments-list-selection"
+      data-inputcls="photos-layout-moments-list-input"
+      data-listcls="photos-layout-moments-list-list"
+      data-bind-focus="momentAddFocus"
+      data-bind-change="momentAddChange"
+    ></rv-require>
+
+    <button class="photos-layout-moments-add" on-click="addMoment">+</button>
+  </div>
 </div>

@@ -24,4 +24,8 @@
   {{/photos}}
 </div>
 
+<div class="photos-viewer-bar {{displayBar ? 'show' : ''}}">
+  <a href="{{photos[1].url}}" download target="_blank"><i class="fa fa-download"></i></a>
+</div>
+
 <div class="photos-viewer-date {{displayDate ? 'show' : ''}}">{{date}}</div>
