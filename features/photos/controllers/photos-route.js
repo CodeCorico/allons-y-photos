@@ -11,7 +11,8 @@ module.exports = {
       return;
     }
 
-    var user = $BodyDataService.data('user');
+    var user = $BodyDataService.data('user'),
+        canAdministrateMoments = user && user.permissionsPublic && user.permissionsPublic.indexOf('photos-moments') > -1;
 
     if (user.permissionsPublic.indexOf('photos-access') < 0) {
       return $next();
@@ -44,16 +45,18 @@ module.exports = {
             }
           });
 
-          $Page.rightButtonAdd('photos-select', {
-            type: 'indicator',
-            image: '/public/photos/photos-pointer.png',
-            ready: function(button) {
-              $PhotosService.config('selectButton', button);
-            },
-            action: function() {
-              $PhotosService.toggleSelectionMode();
-            }
-          });
+          if (canAdministrateMoments) {
+            $Page.rightButtonAdd('photos-select', {
+              type: 'indicator',
+              image: '/public/photos/photos-pointer.png',
+              ready: function(button) {
+                $PhotosService.config('selectButton', button);
+              },
+              action: function() {
+                $PhotosService.toggleSelectionMode();
+              }
+            });
+          }
 
           $Layout.require('photos-layout');
         });

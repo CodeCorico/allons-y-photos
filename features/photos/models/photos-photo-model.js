@@ -14,6 +14,11 @@ module.exports = function() {
             title: 'Access to the Photos app',
             description: 'Access to the Photos app.',
             isPublic: true
+          },
+          'photos-moments': {
+            title: 'Moments administration',
+            description: 'Moments administration of the Photos app.',
+            isPublic: true
           }
         };
 

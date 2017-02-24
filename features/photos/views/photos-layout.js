@@ -2,15 +2,17 @@
   'use strict';
 
   window.Ractive.controllerInjection('photos-layout', [
-    '$PhotosService', '$RealTimeService', '$socket', '$Layout', '$component', '$data', '$done',
+    '$PhotosService', '$RealTimeService', '$BodyDataService', '$socket', '$Layout', '$component', '$data', '$done',
   function photosLayoutController(
-    $PhotosService, $RealTimeService, $socket, $Layout, $component, $data, $done
+    $PhotosService, $RealTimeService, $BodyDataService, $socket, $Layout, $component, $data, $done
   ) {
-    var PhotosLayout = $component({
+    var _user = $BodyDataService.data('user') || null,
+        PhotosLayout = $component({
           data: $.extend(true, {
             contentTop: 0,
             containerHeight: 300,
             selectionModeActivated: false,
+            canAdministrateMoments: _user && _user.permissionsPublic && _user.permissionsPublic.indexOf('photos-moments') > -1,
 
             momentAddFocus: function(event, value, component) {
               PhotosLayout.get('momentAddChange')(event, value, component);

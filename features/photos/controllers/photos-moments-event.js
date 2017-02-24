@@ -2,7 +2,7 @@
 
 module.exports = [{
   event: 'update(photos/moment)',
-  isMember: true,
+  permissions: ['photos-moments'],
   controller: function($socket, PhotoModel, $message) {
     if (!this.validMessage($message, {
       name: ['string', 'filled'],
@@ -19,7 +19,7 @@ module.exports = [{
   }
 }, {
   event: 'delete(photos/moment)',
-  isMember: true,
+  permissions: ['photos-moments'],
   controller: function($socket, PhotoModel, $message) {
     if (!this.validMessage($message, {
       name: ['string', 'filled'],

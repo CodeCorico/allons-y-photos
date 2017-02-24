@@ -32,11 +32,11 @@
 
   </div>
 
-  <div class="photos-layout-remove-moment-bar {{displayMomentBar && momentSelected ? 'show' : ''}}">
+  <div class="photos-layout-remove-moment-bar {{canAdministrateMoments && displayMomentBar && momentSelected ? 'show' : ''}}">
     <button class="photos-layout-remove-moment" on-click="removeMoment">remove from this moment</button>
   </div>
 
-  <div class="photos-layout-moments-bar {{displayMomentBar ? 'show' : ''}}">
+  <div class="photos-layout-moments-bar {{canAdministrateMoments && displayMomentBar ? 'show' : ''}}">
     <rv-require
       name="pl-autocomplete"
       src="/public/vendor/plumes/autocomplete/pl-autocomplete"
