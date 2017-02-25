@@ -9,13 +9,23 @@
 
         <h2>{{_('Moments')}}</h2>
         {{#moments}}
-          <div class="photos-nav-moment {{title ? '' : 'is-title'}} {{selected ? 'selected' : ''}}" on-click="selectMoment">
-            {{title || _('All')}}
-            {{#if title}}
-              <span>{{count}}</span>
-            {{/if}}
+          <div class="photos-nav-moment {{selected ? 'selected' : ''}}" on-click="selectMoment">
+            {{name}}<span>{{count}}</span>
           </div>
         {{/moments}}
+        <div class="clear"></div>
+
+        <h2>{{_('People')}}</h2>
+        <div class="photos-nav-people">
+          {{#people}}
+            <div
+              class="photos-nav-person {{selected ? 'selected' : ''}}"
+              title="{{name + ': ' + count}}"
+              style="background-image: url('/media/photos/people/{{avatar || name + '.jpg'}}');"
+              on-click="selectPerson"
+            ></div>
+          {{/people}}
+        </div>
         <div class="clear"></div>
 
         <h2>{{_('Dates')}}</h2>

@@ -15,6 +15,41 @@ module.exports = function() {
         _this.config('selectionModeActivated', !_this.config('selectionModeActivated'));
       };
 
+      this.addFilter = function(name, type) {
+        var filters = _this.config('filters') || [];
+
+        filters.push({
+          type: type,
+          name: name
+        });
+
+        _this.fire('addFilter', {
+          name: name,
+          type: type
+        });
+
+        _this.config('filters', filters);
+      };
+
+      this.removeFilter = function(name, type) {
+        var filters = _this.config('filters') || [];
+
+        for (var i = 0; i < filters.length; i++) {
+          if (filters[i].name == name && filters[i].type == type) {
+            filters.splice(i, 1);
+
+            break;
+          }
+        }
+
+        _this.fire('removeFilter', {
+          name: name,
+          type: type
+        });
+
+        _this.config('filters', filters);
+      };
+
       this.onSafe('$WebMetricsService.teardown', function() {
         var config = _this.config();
 

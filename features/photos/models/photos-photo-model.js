@@ -19,13 +19,21 @@ module.exports = function() {
             title: 'Moments administration',
             description: 'Moments administration of the Photos app.',
             isPublic: true
+          },
+          'photos-people': {
+            title: 'People administration',
+            description: 'People administration of the Photos app.',
+            isPublic: true
           }
         };
 
     return $AbstractModel('PhotoModel', function() {
 
       var extend = require('extend'),
-          async = require('async');
+          async = require('async'),
+          fs = require('fs-extra'),
+          path = require('path'),
+          _mediaFolder = path.resolve('media');
 
       return {
         identity: 'photos',
@@ -58,6 +66,10 @@ module.exports = function() {
           cover: 'string',
           isVideo: 'boolean',
           moments: {
+            type: 'array',
+            index: true
+          },
+          people: {
             type: 'array',
             index: true
           },
@@ -103,7 +115,7 @@ module.exports = function() {
           $RealTimeService.registerEvents(REALTIME_EVENTS);
         },
 
-        callPhotos: function($socket, eventName, args, callback, momentUpdated, socketOrigin) {
+        callPhotos: function($socket, eventName, args, callback, addOnly, socketOrigin) {
           eventName = eventName || 'photos';
 
           var sockets = $socket ? [$socket] : $RealTimeService.socketsFromOrigin(eventName);
@@ -135,7 +147,8 @@ module.exports = function() {
                   isVideo: photo.isVideo,
                   thumbnail: photo.thumbnail,
                   url: photo.url,
-                  moments: photo.moments
+                  moments: photo.moments,
+                  people: photo.people
                 };
               });
 
@@ -145,8 +158,8 @@ module.exports = function() {
                 photos: photos
               };
 
-              if (momentUpdated) {
-                eventResult.momentUpdated = momentUpdated;
+              if (addOnly) {
+                eventResult.addOnly = true;
               }
 
               sockets.forEach(function(socket) {
@@ -189,14 +202,13 @@ module.exports = function() {
                   });
               }, function() {
                 setTimeout(function() {
-                  _this.callPhotos(null, null, null, null, name, $socket);
+                  _this.callPhotos(null, null, null, null, true, $socket);
                 });
               });
-
             });
         },
 
-        deleteMoment: function($socket, name, photos) {
+        deleteMoment: function($socket, names, photos) {
           var _this = this;
 
           this
@@ -211,13 +223,21 @@ module.exports = function() {
               async.eachSeries(photos, function(photo, nextPhoto) {
                 photo.moments = photo.moments || [];
 
-                var index = photo.moments.indexOf(name);
+                var hasRemoved = false;
 
-                if (index < 0) {
+                names.forEach(function(name) {
+                  var index = photo.moments.indexOf(name);
+
+                  if (index > -1) {
+                    photo.moments.splice(index, 1);
+
+                    hasRemoved = true;
+                  }
+                })
+
+                if (!hasRemoved) {
                   return nextPhoto();
                 }
-
-                photo.moments.splice(index, 1);
 
                 _this
                   .update({
@@ -230,10 +250,113 @@ module.exports = function() {
                   });
               }, function() {
                 setTimeout(function() {
-                  _this.callPhotos(null, null, null, null, name, $socket);
+                  _this.callPhotos();
                 });
               });
 
+            });
+        },
+
+        updatePeople: function($socket, name, photos) {
+          var _this = this;
+
+          this
+            .find({
+              url: photos
+            })
+            .exec(function(err, photos) {
+              if (err || !photos || !photos.length) {
+                return;
+              }
+
+              async.eachSeries(photos, function(photo, nextPhoto) {
+                photo.people = photo.people || [];
+
+                if (photo.people.indexOf(name) > -1) {
+                  return nextPhoto();
+                }
+
+                photo.people.push(name);
+
+                _this
+                  .update({
+                    id: photo.id
+                  }, {
+                    people: photo.people
+                  })
+                  .exec(function() {
+                    nextPhoto();
+                  });
+              }, function() {
+                var identityFile = path.join(_mediaFolder, 'photos/people/' + name + '.jpg');
+
+                if (!fs.existsSync(identityFile)) {
+                  fs.copySync(path.resolve(__dirname, '../views/resources/identity.jpg'), identityFile);
+                }
+
+                setTimeout(function() {
+                  _this.callPhotos(null, null, null, null, true, $socket);
+                });
+              });
+
+            });
+        },
+
+        deletePeople: function($socket, photos) {
+          var _this = this;
+
+          this
+            .find({
+              url: photos
+            })
+            .exec(function(err, photos) {
+              if (err || !photos || !photos.length) {
+                return;
+              }
+
+              async.eachSeries(photos, function(photo, nextPhoto) {
+                if (!photo.people || !photo.people.length) {
+                  return nextPhoto();
+                }
+
+                photo.people = [];
+
+                _this
+                  .update({
+                    id: photo.id
+                  }, {
+                    people: photo.people
+                  })
+                  .exec(function() {
+                    nextPhoto();
+                  });
+              }, function() {
+                setTimeout(function() {
+                  _this.callPhotos();
+                });
+              });
+
+            });
+        },
+
+        updateAvatar: function($socket, name, photos) {
+          this
+            .findOne({
+              url: photos[0]
+            })
+            .exec(function(err, photo) {
+              if (err || !photo) {
+                return;
+              }
+
+              var identityFile = path.join(_mediaFolder, 'photos/people/' + name + '.jpg'),
+                  sourceFile = path.join(_mediaFolder, photo.cover.replace('/media/', ''));
+
+              fs.copySync(sourceFile, identityFile);
+
+              $socket.emit('read(photos/avatar)', {
+                name: name
+              });
             });
         }
       };

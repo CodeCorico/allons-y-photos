@@ -12,7 +12,10 @@ module.exports = {
     }
 
     var user = $BodyDataService.data('user'),
-        canAdministrateMoments = user && user.permissionsPublic && user.permissionsPublic.indexOf('photos-moments') > -1;
+        canSelect = user && user.permissionsPublic && (
+          user.permissionsPublic.indexOf('photos-moments') > -1 ||
+          user.permissionsPublic.indexOf('photos-people') > -1
+        );
 
     if (user.permissionsPublic.indexOf('photos-access') < 0) {
       return $next();
@@ -45,7 +48,7 @@ module.exports = {
             }
           });
 
-          if (canAdministrateMoments) {
+          if (canSelect) {
             $Page.rightButtonAdd('photos-select', {
               type: 'indicator',
               image: '/public/photos/photos-pointer.png',

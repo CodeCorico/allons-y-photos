@@ -31,10 +31,10 @@ module.exports = function($allonsy, $glob, $done) {
   }
 
   function _workingOutput(startDate, count, total, done) {
-    $allonsy.outputInfo('[' + (done ? 'done' : 'working') + ':indexer]► (' +
+    $allonsy.outputInfo('[' + (done ? 'done' : 'working') + ':indexer]► [' +
       startDate.getDate() + '/' + (startDate.getMonth() + 1) + '/' + startDate.getFullYear() + ' ' +
       startDate.getHours() + ':' + startDate.getMinutes() +
-    ') ' + count + '/' + total + ' photos indexed [' + (done ? 'in ' : '') + _elaspedTime(startDate) + ']');
+    '] ' + count + '/' + total + ' photos indexed (' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
   }
 
   function _exif(file, callback) {

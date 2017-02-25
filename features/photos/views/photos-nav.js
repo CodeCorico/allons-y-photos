@@ -9,9 +9,7 @@
     var PhotosNav = $component({
       data: $.extend(true, {
         photosLength: 0,
-        videosLength: 0,
-        moments: [],
-        isMomentSelected: false
+        videosLength: 0
       }, $data)
     });
 
@@ -81,9 +79,19 @@
 
     function _moments(args) {
       PhotosNav.set('moments', args.value);
+
+      _filters('moments');
     }
 
     $PhotosService.onSafe('photosNavController.momentsConfigChanged', _moments);
+
+    function _people(args) {
+      PhotosNav.set('people', args.value);
+
+      _filters('people');
+    }
+
+    $PhotosService.onSafe('photosNavController.peopleConfigChanged', _people);
 
     function _dateAnchor(args) {
       PhotosNav.set('dateSelectedId', window.moment(args.value.date).format('MMMM YYYY D'));
@@ -98,22 +106,71 @@
 
     $PhotosService.onSafe('photosNavController.lengthsConfigChanged', _lengths);
 
-    function _momentSelected(args) {
-      var moments = PhotosNav.get('moments');
+    function _filters(type) {
+      var filters = $PhotosService.config('filters'),
+          types = type ? [type] : ['moments', 'people'];
 
-      args.value = args.value || '';
+      if (!filters || !filters.length) {
+        return;
+      }
 
-      for (var i = 0; i < moments.length; i++) {
-        if (moments[i].title == args.value) {
-          PhotosNav.set('moments.' + i + '.selected', true);
+      types.forEach(function(type) {
+        var list = PhotosNav.get(type);
+
+        for (var i = 0; i < list.length; i++) {
+          var selected = false;
+
+          for (var j = 0; j < filters.length; j++) {
+            if (filters[j].type == type && filters[j].name == list[i].name) {
+              selected = true;
+
+              break;
+            }
+          }
+
+          PhotosNav.set(type + '.' + i + '.selected', selected);
         }
-        else if (moments[i].selected) {
-          PhotosNav.set('moments.' + i + '.selected', false);
+      });
+
+    }
+
+    function _addRemoveFilterSelected(args, add) {
+      var list = PhotosNav.get(args.type);
+
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].name == args.name) {
+          PhotosNav.set(args.type + '.' + i + '.selected', add);
+
+          break;
         }
       }
     }
 
-    $PhotosService.onSafe('photosNavController.momentSelectedConfigChanged', _momentSelected);
+    function _addFilterSelected(args) {
+      _addRemoveFilterSelected(args, true);
+    }
+
+    function _removeFilterSelected(args) {
+      _addRemoveFilterSelected(args, false);
+    }
+
+    $PhotosService.onSafe('photosNavController.addFilter', _addFilterSelected);
+    $PhotosService.onSafe('photosNavController.removeFilter', _removeFilterSelected);
+
+    function _avatarChanged(args) {
+      var list = PhotosNav.get('people'),
+          avatar = args.name + '.jpg?t=' + new Date().getTime();
+
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].name == args.name) {
+          PhotosNav.set('people.' + i + '.avatar', avatar);
+
+          break;
+        }
+      }
+    }
+
+    $PhotosService.onSafe('photosNavController.avatarChanged', _avatarChanged);
 
     PhotosNav.on('toAnchor', function(event) {
       _closeOnNotDesktop();
@@ -127,13 +184,15 @@
     });
 
     PhotosNav.on('selectMoment', function(event) {
-      if (event.context.selected) {
-        return;
-      }
-
       _closeOnNotDesktop();
 
-      $PhotosService.config('momentSelected', event.context.title);
+      $PhotosService[event.context.selected ? 'removeFilter' : 'addFilter'](event.context.name, 'moments');
+    });
+
+    PhotosNav.on('selectPerson', function(event) {
+      _closeOnNotDesktop();
+
+      $PhotosService[event.context.selected ? 'removeFilter' : 'addFilter'](event.context.name, 'people');
     });
 
     PhotosNav.on('teardown', function() {
@@ -155,6 +214,12 @@
         });
       }
 
+      if ($PhotosService.config('people')) {
+        _people({
+          value: $PhotosService.config('people')
+        });
+      }
+
       if ($PhotosService.config('dateAnchor')) {
         _dateAnchor({
           value: $PhotosService.config('dateAnchor')
@@ -164,12 +229,6 @@
       if ($PhotosService.config('lengths')) {
         _lengths({
           value: $PhotosService.config('lengths')
-        });
-      }
-
-      if ($PhotosService.config('momentSelected')) {
-        _momentSelected({
-          value: $PhotosService.config('momentSelected')
         });
       }
 

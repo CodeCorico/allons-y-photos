@@ -16,6 +16,9 @@
               on-click="select"
             >
               {{#if selectionModeActivated}}
+                {{#if people && people.length}}
+                  <div class="photos-layout-photo-people"><i class="fa fa-user"></i> {{people.length}}</div>
+                {{/if}}
                 <div class="photos-layout-photo-check {{selected ? 'selected' : ''}}" on-click="select">
                   {{#if selected}}
                     <i class="fa fa-check"></i>
@@ -32,25 +35,58 @@
 
   </div>
 
-  <div class="photos-layout-remove-moment-bar {{canAdministrateMoments && displayMomentBar && momentSelected ? 'show' : ''}}">
-    <button class="photos-layout-remove-moment" on-click="removeMoment">remove from this moment</button>
-  </div>
+  <div class="photos-layout-selection-bar {{displaySelectionBar ? 'show' : ''}}">
+    <div
+      class="photos-layout-remove-bar {{canAdministratePeople && selectionWithPeople ? 'show' : ''}}"
+    >
+      <button class="photos-layout-remove" on-click="removePeople">{{_('clear the identities')}}</button>
+    </div>
+    <div class="clear"></div>
 
-  <div class="photos-layout-moments-bar {{canAdministrateMoments && displayMomentBar ? 'show' : ''}}">
-    <rv-require
-      name="pl-autocomplete"
-      src="/public/vendor/plumes/autocomplete/pl-autocomplete"
-      class="photos-layout-moments-list-container"
+    <div
+      class="photos-layout-remove-bar {{canAdministrateMoments && hasMomentFiltered ? 'show' : ''}}"
+    >
+      <button class="photos-layout-remove" on-click="removeMoment">{{_('remove from the moments filtered')}}</button>
+    </div>
+    <div class="clear"></div>
 
-      data-placeholder="{{_('Add to a moment...')}}"
-      data-cls="photos-layout-moments-list"
-      data-selectioncls="photos-layout-moments-list-selection"
-      data-inputcls="photos-layout-moments-list-input"
-      data-listcls="photos-layout-moments-list-list"
-      data-bind-focus="momentAddFocus"
-      data-bind-change="momentAddChange"
-    ></rv-require>
+    <div class="photos-layout-people-bar {{canAdministratePeople ? 'show' : ''}} {{selectionUnique ? 'unique' : ''}}">
+      <rv-require
+        name="pl-autocomplete"
+        el-name="photos-layout-people"
+        src="/public/vendor/plumes/autocomplete/pl-autocomplete"
+        class="photos-layout-autocomplete-container"
 
-    <button class="photos-layout-moments-add" on-click="addMoment">+</button>
+        data-placeholder="{{_('Identify...')}}"
+        data-cls="photos-layout-autocomplete"
+        data-selectioncls="photos-layout-autocomplete-selection"
+        data-inputcls="photos-layout-autocomplete-input"
+        data-listcls="photos-layout-autocomplete-list"
+        data-bind-focus="peopleAddFocus"
+        data-bind-change="peopleAddChange"
+      ></rv-require>
+
+      <button class="photos-layout-avatar-button" on-click="defineAvatar"><i class="fa fa-camera"></i></button>
+      <button class="photos-layout-add-button" on-click="addPeople">+</button>
+    </div>
+
+    <div class="photos-layout-moments-bar {{canAdministrateMoments ? 'show' : ''}}">
+      <rv-require
+        name="pl-autocomplete"
+        el-name="photos-layout-moments"
+        src="/public/vendor/plumes/autocomplete/pl-autocomplete"
+        class="photos-layout-autocomplete-container"
+
+        data-placeholder="{{_('Add to a moment...')}}"
+        data-cls="photos-layout-autocomplete"
+        data-selectioncls="photos-layout-autocomplete-selection"
+        data-inputcls="photos-layout-autocomplete-input"
+        data-listcls="photos-layout-autocomplete-list"
+        data-bind-focus="momentAddFocus"
+        data-bind-change="momentAddChange"
+      ></rv-require>
+
+      <button class="photos-layout-add-button" on-click="addMoment">+</button>
+    </div>
   </div>
 </div>

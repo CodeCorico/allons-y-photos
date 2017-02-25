@@ -13,6 +13,7 @@
             containerHeight: 300,
             selectionModeActivated: false,
             canAdministrateMoments: _user && _user.permissionsPublic && _user.permissionsPublic.indexOf('photos-moments') > -1,
+            canAdministratePeople: _user && _user.permissionsPublic && _user.permissionsPublic.indexOf('photos-people') > -1,
 
             momentAddFocus: function(event, value, component) {
               PhotosLayout.get('momentAddChange')(event, value, component);
@@ -32,14 +33,47 @@
                   list = [];
 
               moments.forEach(function(moment) {
-                if (!moment.title || moment.title.toLowerCase() == value) {
+                if (!moment.name || moment.name.toLowerCase() == value) {
                   return;
                 }
 
-                if (search.test(moment.title)) {
+                if (search.test(moment.name)) {
                   list.push({
-                    display: moment.title,
-                    value: moment.title
+                    display: moment.name,
+                    value: moment.name
+                  });
+                }
+              });
+
+              component.set('list', list);
+            },
+
+            peopleAddFocus: function(event, value, component) {
+              PhotosLayout.get('peopleAddChange')(event, value, component);
+            },
+
+            peopleAddChange: function(event, value, component) {
+              PhotosLayout.set('peopleAddName', value);
+
+              if (!value) {
+                return component.clear();
+              }
+
+              value = value.toLowerCase();
+
+              var people = $PhotosService.config('people'),
+                  search = new RegExp('(' + value + ')', 'i'),
+                  list = [];
+
+              people.forEach(function(person) {
+                if (!person.name || person.name.toLowerCase() == value) {
+                  return;
+                }
+
+                if (search.test(person.name)) {
+                  list.push({
+                    display: person.name,
+                    value: person.name
                   });
                 }
               });
@@ -108,6 +142,13 @@
           start = null,
           stop = datesSelection.length;
 
+      if (!datesSelection || !datesSelection.length) {
+        PhotosLayout.set('contentTop', 0);
+        PhotosLayout.set('dates', []);
+
+        return;
+      }
+
       for (var i = 0; i < datesSelection.length; i++) {
         if (start !== null) {
           if (bottom < datesSelection[i].top) {
@@ -149,44 +190,50 @@
 
     $PhotosService.onSafe('photosLayoutController.anchorConfigChanged', _anchor);
 
+    function _clearSelection() {
+      Object.keys(_selects).forEach(function(keypath) {
+        PhotosLayout.set(keypath + '.selected', false);
+      });
+
+      _selects = {};
+
+      var button = $PhotosService.config('selectButton');
+
+      if (button) {
+        button.set('notificationsCount', 0);
+      }
+    }
+
+    function _clearAutocompletes() {
+      PhotosLayout.findChild('el-name', 'photos-layout-people').clear();
+      PhotosLayout.findChild('el-name', 'photos-layout-moments').clear();
+    }
+
     function _selectionMode(args) {
       PhotosLayout.set('selectionModeActivated', args.value);
 
       if (!args.value) {
-        Object.keys(_selects).forEach(function(keypath) {
-          PhotosLayout.set(keypath + '.selected', false);
-        });
+        _clearSelection();
 
-        _selects = {};
-
-        var button = $PhotosService.config('selectButton');
-
-        if (button) {
-          button.set('notificationsCount', 0);
-        }
-
-        PhotosLayout.set('displayMomentBar', false);
+        PhotosLayout.set('displaySelectionBar', false);
+        PhotosLayout.set('selectionUnique', false);
 
         setTimeout(function() {
           if (!PhotosLayout) {
             return;
           }
 
-          PhotosLayout.findChild('name', 'pl-autocomplete').clear();
+          _clearAutocompletes();
         }, 550);
       }
     }
 
     $PhotosService.onSafe('photosLayoutController.selectionModeActivatedConfigChanged', _selectionMode);
 
-    function _momentSelected(args) {
-      var datesCache = PhotosLayout.get('datesCache'),
-          momentSelected = PhotosLayout.get('momentSelected'),
+    function _filters(args, refreshOnly) {
+      var filters = args.value || [],
+          datesCache = PhotosLayout.get('datesCache'),
           dates = [];
-
-      if (args.value === momentSelected) {
-        return;
-      }
 
       PhotosLayout.set('toMoment', true);
 
@@ -198,13 +245,21 @@
         PhotosLayout.set('toMoment', false);
       }, 550);
 
-      PhotosLayout.set('momentSelected', args.value);
+      PhotosLayout.set('personSelected', args.value);
 
       if ($PhotosService.config('selectionModeActivated')) {
-        $PhotosService.config('selectionModeActivated', false);
+        if (refreshOnly) {
+          _clearSelection();
+          _clearAutocompletes();
+        }
+        else {
+          $PhotosService.config('selectionModeActivated', false);
+        }
       }
 
-      if (!args.value) {
+      var hasMomentFiltered = false;
+
+      if (!filters.length) {
         PhotosLayout.set('datesSelection', datesCache);
         $PhotosService.config('dates', datesCache);
       }
@@ -213,11 +268,30 @@
           var photos = [];
 
           date.photos.forEach(function(photo) {
-            if (!photo.moments || !photo.moments.length) {
-              return;
+            var inMoment = false,
+                hasMoment = false;
+
+            for (var i = 0; i < filters.length; i++) {
+              if (filters[i].type == 'moments') {
+                hasMoment = true;
+                hasMomentFiltered = true;
+              }
+
+              if (
+                filters[i].type == 'people' &&
+                (!photo[filters[i].type] || !photo[filters[i].type].length || photo[filters[i].type].indexOf(filters[i].name) < 0)
+              ) {
+                return;
+              }
+              else if (
+                filters[i].type == 'moments' &&
+                (photo[filters[i].type] && photo[filters[i].type].length && photo[filters[i].type].indexOf(filters[i].name) > -1)
+              ) {
+                inMoment = true;
+              }
             }
 
-            if (photo.moments.indexOf(args.value) > -1) {
+            if (!hasMoment || inMoment) {
               photos.push(photo);
             }
           });
@@ -235,13 +309,17 @@
         $PhotosService.config('dates', dates);
       }
 
-      _$el.scrolls.scrollTop(0);
+      PhotosLayout.set('hasMomentFiltered', hasMomentFiltered);
+
+      if (!refreshOnly) {
+        _$el.scrolls.scrollTop(0);
+      }
 
       _defineView();
       _updateView();
     }
 
-    $PhotosService.onSafe('photosLayoutController.momentSelectedConfigChanged', _momentSelected);
+    $PhotosService.onSafe('photosLayoutController.filtersConfigChanged', _filters);
 
     $PhotosService.onSafe('photosLayoutController.teardown', function() {
       PhotosLayout.teardown();
@@ -267,20 +345,41 @@
         delete _selects[event.keypath];
       }
 
-      var selectsLength = Object.keys(_selects).length,
+      var selectsKeys = Object.keys(_selects),
           button = $PhotosService.config('selectButton');
 
       if (button) {
-        button.set('notificationsCount', selectsLength);
+        button.set('notificationsCount', selectsKeys.length);
       }
 
-      PhotosLayout.set('displayMomentBar', !!selectsLength);
+      PhotosLayout.set('displaySelectionBar', !!selectsKeys.length);
+      PhotosLayout.set('selectionUnique',
+        selectsKeys.length === 1 && PhotosLayout.get(selectsKeys[0]).cover.indexOf('.jpg') > -1
+      );
+
+      var selectionWithPeople = false;
+
+      if (selectsKeys.length) {
+        for (var i = 0; i < selectsKeys.length; i++) {
+          var photo = PhotosLayout.get(selectsKeys[i].replace('dates.', 'datesSelection.'));
+
+          if (photo.people && photo.people.length) {
+            selectionWithPeople = true;
+
+            break;
+          }
+        }
+      }
+
+      PhotosLayout.set('selectionWithPeople', selectionWithPeople);
     });
 
-    PhotosLayout.on('addMoment', function() {
-      var momentAddName = (PhotosLayout.get('momentAddName') || '').trim();
+    function _addType(type, method) {
+      method = method || type;
 
-      if (!momentAddName) {
+      var addName = (PhotosLayout.get(type + 'AddName') || '').trim();
+
+      if (!addName) {
         return;
       }
 
@@ -292,16 +391,31 @@
         return;
       }
 
-      $socket.emit('update(photos/moment)', {
-        name: momentAddName,
+      $socket.emit('update(photos/' + method + ')', {
+        name: addName,
         photos: photos
       });
+    }
+
+    PhotosLayout.on('addMoment', function() {
+      _addType('moment');
+    });
+
+    PhotosLayout.on('addPeople', function() {
+      _addType('people');
     });
 
     PhotosLayout.on('removeMoment', function() {
-      var momentSelected = (PhotosLayout.get('momentSelected') || '').trim();
+      var filters = $PhotosService.config('filters'),
+          filtersSelected = [];
 
-      if (!momentSelected) {
+      filters.forEach(function(filter) {
+        if (filter.type == 'moments') {
+          filtersSelected.push(filter.name);
+        }
+      });
+
+      if (!filtersSelected.length) {
         return;
       }
 
@@ -314,9 +428,31 @@
       }
 
       $socket.emit('delete(photos/moment)', {
-        name: momentSelected,
+        names: filtersSelected,
         photos: photos
       });
+    });
+
+    PhotosLayout.on('removePeople', function() {
+      var photos = Object.keys(_selects).map(function(keypath) {
+        return PhotosLayout.get(keypath + '.url');
+      });
+
+      if (!photos.length) {
+        return;
+      }
+
+      $socket.emit('delete(photos/people)', {
+        photos: photos
+      });
+    });
+
+    PhotosLayout.on('defineAvatar', function() {
+      $socket.once('read(photos/avatar)', function(args) {
+        $PhotosService.fire('avatarChanged', args);
+      });
+
+      _addType('people', 'avatar');
     });
 
     PhotosLayout.on('teardown', function() {
@@ -346,10 +482,9 @@
         var activeYear = new Date().getFullYear(),
             datesCache = [],
             momentsCache = {},
-            moments = [{
-              title: '',
-              selected: true
-            }],
+            moments = [],
+            peopleCache = {},
+            people = [],
             i = -1,
             lastTime = null;
 
@@ -377,29 +512,53 @@
 
           datesCache[i].photos.push(photo);
 
-          if (!photo.moments || !photo.moments.length) {
-            return;
+          if (photo.moments && photo.moments.length) {
+            photo.moments.forEach(function(moment) {
+              if (typeof momentsCache[moment] == 'undefined') {
+                moments.push({
+                  name: moment,
+                  count: 0,
+                  selected: false
+                });
+                momentsCache[moment] = moments.length - 1;
+              }
+
+              moments[momentsCache[moment]].count++;
+            });
           }
 
-          photo.moments.forEach(function(moment) {
-            if (typeof momentsCache[moment] == 'undefined') {
-              moments.push({
-                title: moment,
-                count: 0,
-                selected: false
-              });
-              momentsCache[moment] = moments.length - 1;
-            }
+          if (photo.people && photo.people.length) {
+            photo.people.forEach(function(person) {
+              if (typeof peopleCache[person] == 'undefined') {
+                people.push({
+                  name: person,
+                  count: 0,
+                  selected: false
+                });
+                peopleCache[person] = people.length - 1;
+              }
 
-            moments[momentsCache[moment]].count++;
-          });
+              people[peopleCache[person]].count++;
+            });
+          }
         });
 
         moments.sort(function(a, b) {
-          if (a.title < b.title) {
+          if (a.name < b.name) {
             return -1;
           }
-          if (a.title > b.title) {
+          if (a.name > b.name) {
+            return 1;
+          }
+
+          return 0;
+        });
+
+        people.sort(function(a, b) {
+          if (a.name < b.name) {
+            return -1;
+          }
+          if (a.name > b.name) {
             return 1;
           }
 
@@ -407,25 +566,12 @@
         });
 
         PhotosLayout.set('datesCache', datesCache);
-        PhotosLayout.set('datesSelection', datesCache);
-
-        $PhotosService.config('dates', datesCache);
         $PhotosService.config('moments', moments);
+        $PhotosService.config('people', people);
 
-        _defineView();
-
-        if (args.momentUpdated) {
-          var momentExists = Object.keys(momentsCache).indexOf(args.momentUpdated) > -1;
-
-          if (PhotosLayout.get('momentSelected') == args.momentUpdated) {
-            PhotosLayout.set('momentSelected', null);
-
-            $PhotosService.config('momentSelected', momentExists ? args.momentUpdated : '');
-          }
-          else if (args.isOrigin) {
-            $PhotosService.config('momentSelected', momentExists ? args.momentUpdated : '');
-          }
-        }
+        _filters({
+          value: $PhotosService.config('filters')
+        }, args.addOnly);
       }
     }, 'photos');
 
