@@ -84,9 +84,11 @@ module.exports = function($allonsy, $glob, $done) {
     _workingOutput(startDate, count, '?');
 
     var extensions = ['jpeg', 'jpg', 'gif', 'png', 'mp4'],
-        files = $glob.sync(path.join(INDEXER_PATH, '/**/*.@(' + extensions.join('|') + '|' + extensions.map(function(ext) {
-          return ext.toUpperCase();
-        }).join('|') + ')'));
+        files = $glob
+          .sync(path.join(INDEXER_PATH, '/**/*.@(' + extensions.join('|') + '|' + extensions.map(function(ext) {
+            return ext.toUpperCase();
+          }).join('|') + ')'))
+          .reverse();
 
     _workingOutput(startDate, count, files.length);
 
