@@ -1,3 +1,14 @@
+<a name="1.0.2"></a>
+# [1.0.2](https://github.com/CodeCorico/allons-y-photos/compare/1.0.1...1.0.2) (2017-02-26)
+
+### Features
+* **indexer:** sort the indexer files by most recent first [#03ce85d](https://github.com/CodeCorico/allons-y-photos/commit/03ce85d)
+* **indexer:** add "updated" and "added" log details [#5728daf](https://github.com/CodeCorico/allons-y-photos/commit/5728daf)
+
+### Bug Fixes
+* **indexer env:** remove useless watcher option [#252830e](https://github.com/CodeCorico/allons-y-photos/commit/252830e)
+* **indexer:** remove "File Modification Date/Time" exif check [#5153307](https://github.com/CodeCorico/allons-y-photos/commit/5153307)
+
 <a name="1.0.1"></a>
 # [1.0.1](https://github.com/CodeCorico/allons-y-photos/compare/1.0.0...1.0.1) (2017-02-26)
 
