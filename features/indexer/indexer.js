@@ -134,8 +134,9 @@ module.exports = function($allonsy, $glob, $done) {
           else {
             added++;
           }
+
           _exif(file, function(exif) {
-            var dateDir = exif && exif['Create Date'] || exif['Media Create Date'] || exif['File Modification Date/Time'] || null;
+            var dateDir = exif && exif['Create Date'] || exif['Media Create Date'] || null;
 
             if (dateDir) {
               dateDir = dateDir.split(' ')[0].replace(/:/g, '');
