@@ -4,11 +4,6 @@
     "name": "INDEXER",
     "message": "Enable the Photos indexer process:"
   }, {
-    "type": "confirm",
-    "name": "INDEXER_WATCHER",
-    "message": "Enable the Photos Indexer watcher:",
-    "when": "INDEXER=true"
-  }, {
     "type": "input",
     "name": "INDEXER_PATH",
     "message": "Path of the Photos to index:",
