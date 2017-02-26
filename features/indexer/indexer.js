@@ -34,7 +34,7 @@ module.exports = function($allonsy, $glob, $done) {
     $allonsy.outputInfo('[' + (done ? 'done' : 'working') + ':indexer]► [' +
       startDate.getDate() + '/' + (startDate.getMonth() + 1) + '/' + startDate.getFullYear() + ' ' +
       startDate.getHours() + ':' + startDate.getMinutes() +
-    '] ' + count + '/' + total + ' photos indexed (' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
+    '] ' + count + '/' + total + ' photos/videos indexed (' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
   }
 
   function _exif(file, callback) {
@@ -125,7 +125,7 @@ module.exports = function($allonsy, $glob, $done) {
           }
 
           _exif(file, function(exif) {
-            var dateDir = exif && exif['Create Date'] || exif['Media Create Date'] || null;
+            var dateDir = exif && exif['Create Date'] || exif['Media Create Date'] || exif['File Modification Date/Time'] || null;
 
             if (dateDir) {
               dateDir = dateDir.split(' ')[0].replace(/:/g, '');
