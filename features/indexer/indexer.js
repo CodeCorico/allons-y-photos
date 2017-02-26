@@ -30,11 +30,11 @@ module.exports = function($allonsy, $glob, $done) {
     return ((hours ? hours + 'h' : '') + (minutes ? ' ' + minutes + 'min' : '') + (seconds ? ' ' + seconds + 's' : '')).trim();
   }
 
-  function _workingOutput(startDate, count, total, done) {
+  function _workingOutput(startDate, count, added, updated, total, done) {
     $allonsy.outputInfo('[' + (done ? 'done' : 'working') + ':indexer]► [' +
       startDate.getDate() + '/' + (startDate.getMonth() + 1) + '/' + startDate.getFullYear() + ' ' +
       startDate.getHours() + ':' + startDate.getMinutes() +
-    '] ' + count + '/' + total + ' photos/videos indexed (' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
+    '] ' + count + (total ? '/' + total : '') + ' (' + added + ' added, ' + updated + ' updated) photos/videos indexed (' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
   }
 
   function _exif(file, callback) {
@@ -76,12 +76,14 @@ module.exports = function($allonsy, $glob, $done) {
         photosThumbsFactory = DependencyInjection.injector.controller.get('photosThumbsFactory'),
         startDate = new Date(),
         count = 0,
+        added = 0,
+        updated = 0,
         photosIndexes = {
           dates: {},
           total: 0
         };
 
-    _workingOutput(startDate, count, '?');
+    _workingOutput(startDate, count, added, updated, '');
 
     var extensions = ['jpeg', 'jpg', 'gif', 'png', 'mp4'],
         files = $glob
@@ -90,14 +92,14 @@ module.exports = function($allonsy, $glob, $done) {
           }).join('|') + ')'))
           .reverse();
 
-    _workingOutput(startDate, count, files.length);
+    _workingOutput(startDate, count, added, updated, files.length);
 
     fs.ensureDirSync(destDir);
 
     async.eachSeries(files, function(file, nextFile) {
       file = path.resolve(file);
 
-      _workingOutput(startDate, count, files.length);
+      _workingOutput(startDate, count, added, updated, files.length);
       count++;
 
       var stat = fs.statSync(file);
@@ -126,6 +128,12 @@ module.exports = function($allonsy, $glob, $done) {
             return nextFile();
           }
 
+          if (photoModel.url) {
+            updated++;
+          }
+          else {
+            added++;
+          }
           _exif(file, function(exif) {
             var dateDir = exif && exif['Create Date'] || exif['Media Create Date'] || exif['File Modification Date/Time'] || null;
 
@@ -177,7 +185,7 @@ module.exports = function($allonsy, $glob, $done) {
           });
         });
     }, function() {
-      _workingOutput(startDate, count, files.length);
+      _workingOutput(startDate, count, added, updated, files.length);
 
       ExifService.stop();
 
@@ -189,14 +197,14 @@ module.exports = function($allonsy, $glob, $done) {
           if (err || !photosIndexesModel) {
             _err(err || new Error('no photosIndexes found'));
 
-            return _workingOutput(startDate, files.length, files.length, true);
+            return _workingOutput(startDate, files.length, added, updated, files.length, true);
           }
 
           photosIndexesModel.dates = photosIndexes.dates;
           photosIndexesModel.total = photosIndexes.total;
 
           photosIndexesModel.save(function() {
-            _workingOutput(startDate, files.length, files.length, true);
+            _workingOutput(startDate, files.length, added, updated, files.length, true);
           });
         });
     });
