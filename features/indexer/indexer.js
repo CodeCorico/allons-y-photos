@@ -8,7 +8,8 @@ module.exports = function($allonsy, $glob, $done) {
       ffmpeg = require('fluent-ffmpeg'),
 
       INDEXER_PATH = path.resolve(process.env.INDEXER_PATH),
-      destDir = path.resolve('media/photos');
+      destDir = path.resolve('media/photos'),
+      logFilePath = path.resolve('indexer.log');
 
   require(path.resolve(__dirname, 'models/indexer-exif-service-back.js'))();
 
@@ -31,10 +32,19 @@ module.exports = function($allonsy, $glob, $done) {
   }
 
   function _workingOutput(startDate, count, added, updated, total, done) {
+    var day = startDate.getDate(),
+        months = startDate.getMonth() + 1,
+        hours = startDate.getHours(),
+        minutes = startDate.getMinutes();
+
+    day = day > 9 ? day : '0' + day;
+    months = months > 9 ? months : '0' + months;
+    hours = hours > 9 ? hours : '0' + hours;
+    minutes = minutes > 9 ? minutes : '0' + minutes;
+
     $allonsy.outputInfo('[' + (done ? 'done' : 'working') + ':indexer]► [' +
-      startDate.getDate() + '/' + (startDate.getMonth() + 1) + '/' + startDate.getFullYear() + ' ' +
-      startDate.getHours() + ':' + startDate.getMinutes() +
-    '] ' + count + (total ? '/' + total : '') + ' (' + added + ' added, ' + updated + ' updated) photos/videos indexed (' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
+      day + '/' + months + '/' + startDate.getFullYear() + ' ' + hours + ':' + minutes +
+    '] Indexer: ' + count + (total ? '/' + total : '') + ' (+' + added + ', ~' + updated + ') (' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
   }
 
   function _exif(file, callback) {
@@ -64,10 +74,15 @@ module.exports = function($allonsy, $glob, $done) {
     photosIndexes.dates[photoModel.shotTime]++;
   }
 
-  function _err(err) {
-    $allonsy.outputWarning('allons-y-photos', 'indexer:' + err.message, {
-      error: err
-    });
+  function _log(logFileOptions, text) {
+    if (!logFileOptions.append) {
+      logFileOptions.append = true;
+
+      fs.writeFileSync(logFilePath, text);
+    }
+    else {
+      fs.appendFileSync(logFilePath, '\n' + text);
+    }
   }
 
   function _index() {
@@ -81,7 +96,8 @@ module.exports = function($allonsy, $glob, $done) {
         photosIndexes = {
           dates: {},
           total: 0
-        };
+        },
+        logFileOptions = {};
 
     _workingOutput(startDate, count, added, updated, '');
 
@@ -105,6 +121,8 @@ module.exports = function($allonsy, $glob, $done) {
       var stat = fs.statSync(file);
 
       if (!stat || !stat.mtime) {
+        _log(logFileOptions, 'no stat found for: ' + file);
+
         return nextFile();
       }
 
@@ -119,11 +137,17 @@ module.exports = function($allonsy, $glob, $done) {
         })
         .exec(function(err, photoModel) {
           if (err || !photoModel) {
+            _log(logFileOptions, 'no photo model created for: ' + photo.source);
+
             return nextFile();
           }
 
           if (photoModel.url && photoModel.sourceModifiedAt && photoModel.sourceModifiedAt == photo.sourceModifiedAt) {
             _updatePhotosIndexes(photoModel, photosIndexes);
+
+            if (!photoModel.cover) {
+              _log(logFileOptions, 'photo not updated but with empty cover: ' + photo.source || photoModel.url);
+            }
 
             return nextFile();
           }
@@ -135,32 +159,55 @@ module.exports = function($allonsy, $glob, $done) {
             added++;
           }
 
+          var isVideo = path.extname(file).toLowerCase() == '.mp4',
+              fileName = path.basename(file);
+
           _exif(file, function(exif) {
-            var dateDir = exif && exif['Create Date'] || exif['Media Create Date'] || null;
+            var dateDir =
+                  exif && exif['Create Date'] && exif['Create Date'] != '0000:00:00 00:00:00' ? exif['Create Date'] : (
+                  exif && exif['Media Create Date'] && exif['Media Create Date'] != '0000:00:00 00:00:00' ? exif['Media Create Date'] :
+                  null
+                );
 
             if (dateDir) {
               dateDir = dateDir.split(' ')[0].replace(/:/g, '');
             }
             else {
-              dateDir = stat.atime.toISOString().split('T')[0].replace(/-/g, '');
+              if (isVideo && fileName.length > 11 && fileName.substr(0, 3) == 'WP_') {
+                var dateTemp = fileName.substr(3, 8);
+
+                if (parseInt(dateTemp, 10) == dateTemp) {
+                  dateDir = dateTemp;
+                }
+              }
 
               if (!dateDir) {
+                _log(logFileOptions, 'no "Create Date" found for: ' + photo.source);
+
+                dateDir = stat.atime.toISOString().split('T')[0].replace(/-/g, '');
+              }
+
+              if (!dateDir) {
+                _log(logFileOptions, 'no final date found for: ' + photo.source);
+
                 return nextFile();
               }
             }
 
             fs.ensureDirSync(path.join(destDir, dateDir));
 
-            photo.url = '/photo/' + dateDir + '/' + path.basename(file),
+            photo.url = '/photo/' + dateDir + '/' + fileName,
             photo.shotDate = new Date(Date.UTC(dateDir.substr(0, 4), parseInt(dateDir.substr(4, 2), 10) - 1, dateDir.substr(6, 2)));
             photo.shotTime = photo.shotDate.getTime();
 
-            if (path.extname(file).toLowerCase() == '.mp4') {
+            if (isVideo) {
               photo.isVideo = true;
-              photo.cover = path.basename(file).replace('.mp4', '-400x400.png');
+              photo.cover = fileName.replace('.mp4', '-400x400.png');
 
               ffmpeg(file)
                 .on('error', function() {
+                  _log(logFileOptions, 'can\'t generate a thumbnail (with ffmpeg) for: ' + photo.source);
+
                   nextFile();
                 })
                 .on('end', function() {
@@ -196,7 +243,7 @@ module.exports = function($allonsy, $glob, $done) {
         })
         .exec(function(err, photosIndexesModel) {
           if (err || !photosIndexesModel) {
-            _err(err || new Error('no photosIndexes found'));
+            _log(logFileOptions, err && err.message || 'no photosIndexes found');
 
             return _workingOutput(startDate, files.length, added, updated, files.length, true);
           }
