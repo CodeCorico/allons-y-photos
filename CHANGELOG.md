@@ -1,3 +1,9 @@
+<a name="1.0.4"></a>
+# [1.0.4](https://github.com/CodeCorico/allons-y-photos/compare/1.0.3...1.0.4) (2017-03-01)
+
+### Features
+* **indexer:** convert .mov files to .mp4 [#8e87621](https://github.com/CodeCorico/allons-y-photos/commit/8e87621)
+
 <a name="1.0.3"></a>
 # [1.0.3](https://github.com/CodeCorico/allons-y-photos/compare/1.0.2...1.0.3) (2017-03-01)
 
