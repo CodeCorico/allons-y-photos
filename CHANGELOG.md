@@ -1,3 +1,9 @@
+<a name="1.0.3"></a>
+# [1.0.3](https://github.com/CodeCorico/allons-y-photos/compare/1.0.2...1.0.3) (2017-03-01)
+
+### Features
+* **indexer:** log every error in a logs file [#696e1cd](https://github.com/CodeCorico/allons-y-photos/commit/696e1cd)
+
 <a name="1.0.2"></a>
 # [1.0.2](https://github.com/CodeCorico/allons-y-photos/compare/1.0.1...1.0.2) (2017-02-26)
 
