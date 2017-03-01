@@ -8,5 +8,11 @@
     "name": "INDEXER_PATH",
     "message": "Path of the Photos to index:",
     "when": "INDEXER=true"
+  }, {
+    "type": "input",
+    "name": "INDEXER_CONVERT_MOV",
+    "message": "Convert .mov videos to .mp4 format:",
+    "default": false,
+    "when": "INDEXER=true"
   }]
 }

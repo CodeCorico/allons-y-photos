@@ -8,6 +8,7 @@ module.exports = function($allonsy, $glob, $done) {
       ffmpeg = require('fluent-ffmpeg'),
 
       INDEXER_PATH = path.resolve(process.env.INDEXER_PATH),
+      INDEXER_CONVERT_MOV = process.env.INDEXER_CONVERT_MOV && process.env.INDEXER_CONVERT_MOV == 'true',
       destDir = path.resolve('media/photos'),
       logFilePath = path.resolve('indexer.log');
 
@@ -31,7 +32,7 @@ module.exports = function($allonsy, $glob, $done) {
     return ((hours ? hours + 'h' : '') + (minutes ? ' ' + minutes + 'min' : '') + (seconds ? ' ' + seconds + 's' : '')).trim();
   }
 
-  function _workingOutput(startDate, count, added, updated, total, done) {
+  function _workingOutput(startDate, count, added, updated, total, done, converting) {
     var day = startDate.getDate(),
         months = startDate.getMonth() + 1,
         hours = startDate.getHours(),
@@ -44,7 +45,9 @@ module.exports = function($allonsy, $glob, $done) {
 
     $allonsy.outputInfo('[' + (done ? 'done' : 'working') + ':indexer]► [' +
       day + '/' + months + '/' + startDate.getFullYear() + ' ' + hours + ':' + minutes +
-    '] Indexer: ' + count + (total ? '/' + total : '') + ' (+' + added + ', ~' + updated + ') (' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
+    '] Indexer: ' + count + (total ? '/' + total : '') + ' (+' + added + ', ~' + updated + ') ' +
+    (converting || converting === 0 ? '(Converting ' + converting + '%) ' : '') +
+    '(' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
   }
 
   function _exif(file, callback) {
@@ -101,12 +104,17 @@ module.exports = function($allonsy, $glob, $done) {
 
     _workingOutput(startDate, count, added, updated, '');
 
-    var extensions = ['jpeg', 'jpg', 'gif', 'png', 'mp4'],
-        files = $glob
-          .sync(path.join(INDEXER_PATH, '/**/*.@(' + extensions.join('|') + '|' + extensions.map(function(ext) {
-            return ext.toUpperCase();
-          }).join('|') + ')'))
-          .reverse();
+    var extensions = ['jpeg', 'jpg', 'gif', 'png', 'mp4'];
+
+    if (INDEXER_CONVERT_MOV) {
+      extensions.push('mov');
+    }
+
+    var files = $glob
+      .sync(path.join(INDEXER_PATH, '/**/*.@(' + extensions.join('|') + '|' + extensions.map(function(ext) {
+        return ext.toUpperCase();
+      }).join('|') + ')'))
+      .reverse();
 
     _workingOutput(startDate, count, added, updated, files.length);
 
@@ -118,120 +126,151 @@ module.exports = function($allonsy, $glob, $done) {
       _workingOutput(startDate, count, added, updated, files.length);
       count++;
 
-      var stat = fs.statSync(file);
+      var stat = fs.statSync(file),
+          ext = path.extname(file).toLowerCase(),
+          isVideo = ext == '.mp4' || ext == '.mov',
+          fileName = path.basename(file);
 
-      if (!stat || !stat.mtime) {
-        _log(logFileOptions, 'no stat found for: ' + file);
-
+      if (ext == '.mov' && fs.existsSync(file.replace('.mov', '.mp4'))) {
         return nextFile();
       }
 
-      var photo = {
-        source: file,
-        sourceModifiedAt: stat.mtime.getTime()
-      };
+      async.waterfall([function(nextFunc) {
+        if (!isVideo || ext != '.mov') {
+          return nextFunc();
+        }
 
-      PhotoModel
-        .findOrCreate({
-          source: photo.source
-        })
-        .exec(function(err, photoModel) {
-          if (err || !photoModel) {
-            _log(logFileOptions, 'no photo model created for: ' + photo.source);
+        var newFile = file.replace('.mov', '.mp4');
 
-            return nextFile();
-          }
+        _workingOutput(startDate, count, added, updated, files.length, null, 0);
 
-          if (photoModel.url && photoModel.sourceModifiedAt && photoModel.sourceModifiedAt == photo.sourceModifiedAt) {
-            _updatePhotosIndexes(photoModel, photosIndexes);
+        ffmpeg(file)
+          .videoCodec('libx264')
+          .output(newFile)
+          .on('progress', function(progress) {
+            _workingOutput(startDate, count, added, updated, files.length, null,
+              progress.percent || progress.percent === 0 ? Math.max(0, Math.min(100, Math.round(progress.percent))) : 100
+            );
+          })
+          .on('end', function() {
+            file = newFile;
+            fileName = path.basename(file);
+            ext = '.mp4';
 
-            if (!photoModel.cover) {
-              _log(logFileOptions, 'photo not updated but with empty cover: ' + photo.source || photoModel.url);
+            nextFunc();
+          })
+          .run();
+
+      }, function() {
+        if (!stat || !stat.mtime) {
+          _log(logFileOptions, 'no stat found for: ' + file);
+
+          return nextFile();
+        }
+
+        var photo = {
+          source: file,
+          sourceModifiedAt: stat.mtime.getTime()
+        };
+
+        PhotoModel
+          .findOrCreate({
+            source: photo.source
+          })
+          .exec(function(err, photoModel) {
+            if (err || !photoModel) {
+              _log(logFileOptions, 'no photo model created for: ' + photo.source);
+
+              return nextFile();
             }
 
-            return nextFile();
-          }
+            if (photoModel.url && photoModel.sourceModifiedAt && photoModel.sourceModifiedAt == photo.sourceModifiedAt) {
+              _updatePhotosIndexes(photoModel, photosIndexes);
 
-          if (photoModel.url) {
-            updated++;
-          }
-          else {
-            added++;
-          }
+              if (!photoModel.cover) {
+                _log(logFileOptions, 'photo not updated but with empty cover: ' + photo.source || photoModel.url);
+              }
 
-          var isVideo = path.extname(file).toLowerCase() == '.mp4',
-              fileName = path.basename(file);
+              return nextFile();
+            }
 
-          _exif(file, function(exif) {
-            var dateDir =
-                  exif && exif['Create Date'] && exif['Create Date'] != '0000:00:00 00:00:00' ? exif['Create Date'] : (
-                  exif && exif['Media Create Date'] && exif['Media Create Date'] != '0000:00:00 00:00:00' ? exif['Media Create Date'] :
-                  null
-                );
-
-            if (dateDir) {
-              dateDir = dateDir.split(' ')[0].replace(/:/g, '');
+            if (photoModel.url) {
+              updated++;
             }
             else {
-              if (isVideo && fileName.length > 11 && fileName.substr(0, 3) == 'WP_') {
-                var dateTemp = fileName.substr(3, 8);
+              added++;
+            }
 
-                if (parseInt(dateTemp, 10) == dateTemp) {
-                  dateDir = dateTemp;
+            _exif(file, function(exif) {
+              var dateDir =
+                    exif && exif['Create Date'] && exif['Create Date'] != '0000:00:00 00:00:00' ? exif['Create Date'] : (
+                    exif && exif['Media Create Date'] && exif['Media Create Date'] != '0000:00:00 00:00:00' ? exif['Media Create Date'] :
+                    null
+                  );
+
+              if (dateDir) {
+                dateDir = dateDir.split(' ')[0].replace(/:/g, '');
+              }
+              else {
+                if (isVideo && fileName.length > 11 && fileName.substr(0, 3) == 'WP_') {
+                  var dateTemp = fileName.substr(3, 8);
+
+                  if (parseInt(dateTemp, 10) == dateTemp) {
+                    dateDir = dateTemp;
+                  }
+                }
+
+                if (!dateDir) {
+                  _log(logFileOptions, 'no "Create Date" found for: ' + photo.source);
+
+                  dateDir = stat.atime.toISOString().split('T')[0].replace(/-/g, '');
+                }
+
+                if (!dateDir) {
+                  _log(logFileOptions, 'no final date found for: ' + photo.source);
+
+                  return nextFile();
                 }
               }
 
-              if (!dateDir) {
-                _log(logFileOptions, 'no "Create Date" found for: ' + photo.source);
+              fs.ensureDirSync(path.join(destDir, dateDir));
 
-                dateDir = stat.atime.toISOString().split('T')[0].replace(/-/g, '');
+              photo.url = '/photo/' + dateDir + '/' + fileName,
+              photo.shotDate = new Date(Date.UTC(dateDir.substr(0, 4), parseInt(dateDir.substr(4, 2), 10) - 1, dateDir.substr(6, 2)));
+              photo.shotTime = photo.shotDate.getTime();
+
+              if (isVideo) {
+                photo.isVideo = true;
+                photo.cover = fileName.replace('.mp4', '-400x400.png');
+
+                ffmpeg(file)
+                  .on('error', function() {
+                    _log(logFileOptions, 'can\'t generate a thumbnail (with ffmpeg) for: ' + photo.source);
+
+                    nextFile();
+                  })
+                  .on('end', function() {
+                    photo.cover = '/media/photos/' + dateDir + '/' + photo.cover;
+                    photo.thumbnail = photo.cover;
+
+                    _savePhoto(photoModel, photo, photosIndexes, nextFile);
+                  })
+                  .screenshots({
+                    count: 1,
+                    size: '400x?',
+                    folder: path.join(destDir, dateDir),
+                    filename: photo.cover
+                  });
+
+                return;
               }
 
-              if (!dateDir) {
-                _log(logFileOptions, 'no final date found for: ' + photo.source);
-
-                return nextFile();
-              }
-            }
-
-            fs.ensureDirSync(path.join(destDir, dateDir));
-
-            photo.url = '/photo/' + dateDir + '/' + fileName,
-            photo.shotDate = new Date(Date.UTC(dateDir.substr(0, 4), parseInt(dateDir.substr(4, 2), 10) - 1, dateDir.substr(6, 2)));
-            photo.shotTime = photo.shotDate.getTime();
-
-            if (isVideo) {
-              photo.isVideo = true;
-              photo.cover = fileName.replace('.mp4', '-400x400.png');
-
-              ffmpeg(file)
-                .on('error', function() {
-                  _log(logFileOptions, 'can\'t generate a thumbnail (with ffmpeg) for: ' + photo.source);
-
-                  nextFile();
-                })
-                .on('end', function() {
-                  photo.cover = '/media/photos/' + dateDir + '/' + photo.cover;
-                  photo.thumbnail = photo.cover;
-
-                  _savePhoto(photoModel, photo, photosIndexes, nextFile);
-                })
-                .screenshots({
-                  count: 1,
-                  size: '400x?',
-                  folder: path.join(destDir, dateDir),
-                  filename: photo.cover
-                });
-
-              return;
-            }
-
-            photosThumbsFactory(photo, dateDir, function() {
-              _savePhoto(photoModel, photo, photosIndexes, nextFile);
+              photosThumbsFactory(photo, dateDir, function() {
+                _savePhoto(photoModel, photo, photosIndexes, nextFile);
+              });
             });
-
           });
-        });
+      }]);
     }, function() {
       _workingOutput(startDate, count, added, updated, files.length);
 
