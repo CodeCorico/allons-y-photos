@@ -128,10 +128,7 @@
           delete _scroll.startX;
 
           if (scrollLeft === 0) {
-            if (_$video && isTouch) {
-              _$video.click();
-            }
-            else if (!_$video) {
+            if (!_$video) {
               PhotosViewer.set('displayBar', !PhotosViewer.get('displayBar'));
             }
 
