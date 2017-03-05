@@ -9,7 +9,7 @@
     "message": "Path of the Photos to index:",
     "when": "INDEXER=true"
   }, {
-    "type": "input",
+    "type": "confirm",
     "name": "INDEXER_CONVERT_MOV",
     "message": "Convert .mov videos to .mp4 format:",
     "default": false,
