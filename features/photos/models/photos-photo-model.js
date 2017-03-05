@@ -121,7 +121,9 @@ module.exports = function() {
           var sockets = $socket ? [$socket] : $RealTimeService.socketsFromOrigin(eventName);
 
           this
-            .find()
+            .find({
+              select: ['cover', 'shotTime', 'isVideo', 'thumbnail', 'url', 'moments', 'people']
+            })
             .sort({
               shotTime: 'desc'
             })
