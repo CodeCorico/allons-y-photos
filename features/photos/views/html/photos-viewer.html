@@ -23,7 +23,7 @@
   {{/photos}}
 </div>
 
-<div class="photos-viewer-bar {{displayBar ? 'show' : ''}}">
+<div class="photos-viewer-bar {{barEnabled ? 'enabled' : ''}} {{displayBar ? 'show' : ''}}">
   <a href="{{photos[1].url}}" download target="_blank"><i class="fa fa-download"></i></a>
 </div>
 

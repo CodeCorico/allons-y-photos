@@ -93,6 +93,10 @@
     }
 
     function _scrolling(event) {
+      if (!PhotosViewer.get('display')) {
+        return;
+      }
+
       event.preventDefault();
       event.stopPropagation();
 
@@ -238,6 +242,8 @@
         photos[_index],
         _index === photos.length - 1 ? null : photos[_index + 1]
       ]);
+
+      PhotosViewer.set('barEnabled', !photos[_index].isVideo);
 
       if (photos[_index].isVideo) {
         PhotosViewer.set('displayBar', false);
