@@ -191,8 +191,16 @@
     $PhotosService.onSafe('photosLayoutController.anchorConfigChanged', _anchor);
 
     function _clearSelection() {
-      Object.keys(_selects).forEach(function(keypath) {
-        PhotosLayout.set(keypath + '.selected', false);
+      var dates = PhotosLayout.get('dates');
+
+      Object.keys(_selects).forEach(function(index) {
+        for (var i = 0; i < dates.length; i++) {
+          for (var j = 0; j < dates[i].photos.length; j++) {
+            if (dates[i].photos[j].index == index) {
+              return PhotosLayout.set('dates.' + i + '.photos.' + j + '.selected', false);
+            }
+          }
+        }
       });
 
       _selects = {};
@@ -316,7 +324,19 @@
       }
 
       _defineView();
-      _updateView();
+
+      if (refreshOnly) {
+        setTimeout(function() {
+          if (!PhotosLayout) {
+            return;
+          }
+
+          _updateView();
+        });
+      }
+      else {
+        _updateView();
+      }
     }
 
     $PhotosService.onSafe('photosLayoutController.filtersConfigChanged', _filters);
@@ -334,15 +354,16 @@
       event.original.preventDefault();
       event.original.stopPropagation();
 
-      var value = !PhotosLayout.get(event.keypath + '.selected');
+      var value = !PhotosLayout.get(event.keypath + '.selected'),
+          index = PhotosLayout.get(event.keypath).index;
 
       PhotosLayout.set(event.keypath + '.selected', value);
 
       if (value) {
-        _selects[event.keypath] = true;
+        _selects[index] = true;
       }
       else {
-        delete _selects[event.keypath];
+        delete _selects[index];
       }
 
       var selectsKeys = Object.keys(_selects),
@@ -354,14 +375,14 @@
 
       PhotosLayout.set('displaySelectionBar', !!selectsKeys.length);
       PhotosLayout.set('selectionUnique',
-        selectsKeys.length === 1 && PhotosLayout.get(selectsKeys[0]).cover.indexOf('.jpg') > -1
+        selectsKeys.length === 1 && $PhotosService.config('photos')[selectsKeys[0]].cover.indexOf('.jpg') > -1
       );
 
       var selectionWithPeople = false;
 
       if (selectsKeys.length) {
         for (var i = 0; i < selectsKeys.length; i++) {
-          var photo = PhotosLayout.get(selectsKeys[i].replace('dates.', 'datesSelection.'));
+          var photo = $PhotosService.config('photos')[selectsKeys[i]];
 
           if (photo.people && photo.people.length) {
             selectionWithPeople = true;
@@ -383,8 +404,8 @@
         return;
       }
 
-      var photos = Object.keys(_selects).map(function(keypath) {
-        return PhotosLayout.get(keypath + '.url');
+      var photos = Object.keys(_selects).map(function(index) {
+        return $PhotosService.config('photos')[index].url;
       });
 
       if (!photos.length) {
@@ -419,8 +440,8 @@
         return;
       }
 
-      var photos = Object.keys(_selects).map(function(keypath) {
-        return PhotosLayout.get(keypath + '.url');
+      var photos = Object.keys(_selects).map(function(index) {
+        return $PhotosService.config('photos')[index].url;
       });
 
       if (!photos.length) {
@@ -434,8 +455,8 @@
     });
 
     PhotosLayout.on('removePeople', function() {
-      var photos = Object.keys(_selects).map(function(keypath) {
-        return PhotosLayout.get(keypath + '.url');
+      var photos = Object.keys(_selects).map(function(index) {
+        return $PhotosService.config('photos')[index].url;
       });
 
       if (!photos.length) {
