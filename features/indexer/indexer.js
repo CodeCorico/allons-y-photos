@@ -147,6 +147,11 @@ module.exports = function($allonsy, $glob, $done) {
         ffmpeg(file)
           .videoCodec('libx264')
           .output(newFile)
+          .on('error', function() {
+            _log(logFileOptions, 'can\'t convert the .mov format (with ffmpeg) for: ' + file);
+
+            nextFile();
+          })
           .on('progress', function(progress) {
             _workingOutput(startDate, count, added, updated, files.length, null,
               progress.percent || progress.percent === 0 ? Math.max(0, Math.min(100, Math.round(progress.percent))) : 100
