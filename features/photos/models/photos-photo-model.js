@@ -171,7 +171,8 @@ module.exports = function() {
         },
 
         updateMoment: function($socket, name, photos) {
-          var _this = this;
+          var _this = this,
+              nameFormatted = name.toLowerCase();
 
           this
             .find({
@@ -185,8 +186,10 @@ module.exports = function() {
               async.eachSeries(photos, function(photo, nextPhoto) {
                 photo.moments = photo.moments || [];
 
-                if (photo.moments.indexOf(name) > -1) {
-                  return nextPhoto();
+                for (var i = 0; i < photo.moments.length; i++) {
+                  if (photo.moments[i].toLowerCase() == nameFormatted) {
+                    return nextPhoto();
+                  }
                 }
 
                 photo.moments.push(name);
@@ -226,14 +229,23 @@ module.exports = function() {
                 var hasRemoved = false;
 
                 names.forEach(function(name) {
-                  var index = photo.moments.indexOf(name);
+                  var nameFormatted = name.toLowerCase(),
+                      index = -1;
+
+                  for (var i = 0; i < photo.moments.length; i++) {
+                    if (photo.moments[i].toLowerCase() == nameFormatted) {
+                      index = i;
+
+                      break;
+                    }
+                  }
 
                   if (index > -1) {
                     photo.moments.splice(index, 1);
 
                     hasRemoved = true;
                   }
-                })
+                });
 
                 if (!hasRemoved) {
                   return nextPhoto();
@@ -258,7 +270,8 @@ module.exports = function() {
         },
 
         updatePeople: function($socket, name, photos) {
-          var _this = this;
+          var _this = this,
+              nameFormatted = name.toLowerCase();
 
           this
             .find({
@@ -271,6 +284,12 @@ module.exports = function() {
 
               async.eachSeries(photos, function(photo, nextPhoto) {
                 photo.people = photo.people || [];
+
+                for (var i = 0; i < photo.people.length; i++) {
+                  if (photo.people[i].toLowerCase() == nameFormatted) {
+                    return nextPhoto();
+                  }
+                }
 
                 if (photo.people.indexOf(name) > -1) {
                   return nextPhoto();
