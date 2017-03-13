@@ -194,7 +194,10 @@ module.exports = function() {
 
           this
             .find({
-              url: photos
+              select: ['id', 'moments'],
+              where: {
+                url: photos
+              }
             })
             .exec(function(err, photos) {
               if (err || !photos || !photos.length) {
@@ -236,7 +239,10 @@ module.exports = function() {
 
           this
             .find({
-              url: photos
+              select: ['id', 'moments'],
+              where: {
+                url: photos
+              }
             })
             .exec(function(err, photos) {
               if (err || !photos || !photos.length) {
@@ -297,7 +303,10 @@ module.exports = function() {
 
           this
             .find({
-              url: photos
+              select: ['id', 'people'],
+              where: {
+                url: photos
+              }
             })
             .exec(function(err, photos) {
               if (err || !photos || !photos.length) {
@@ -350,7 +359,10 @@ module.exports = function() {
 
           this
             .find({
-              url: photos
+              select: ['id', 'people'],
+              where: {
+                url: photos
+              }
             })
             .exec(function(err, photos) {
               if (err || !photos || !photos.length) {
@@ -387,7 +399,10 @@ module.exports = function() {
         updateAvatar: function($socket, name, photos) {
           this
             .findOne({
-              url: photos[0]
+              select: ['id', 'cover'],
+              where: {
+                url: photos[0]
+              }
             })
             .exec(function(err, photo) {
               if (err || !photo) {
