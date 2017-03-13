@@ -1,3 +1,17 @@
+<a name="1.0.6"></a>
+# [1.0.6](https://github.com/CodeCorico/allons-y-photos/compare/1.0.5...1.0.6) (2017-03-13)
+
+### Features
+* **photos layout:** display moments count on select mode [#c70ea87](https://github.com/CodeCorico/allons-y-photos/commit/c70ea87)
+* **indexer:** clear photos cash at the end of the indexer process [#e77ba6d](https://github.com/CodeCorico/allons-y-photos/commit/e77ba6d)
+
+### Bug Fixes
+* **photos photo model:** sort by shotTime then by source [#8a77de9](https://github.com/CodeCorico/allons-y-photos/commit/8a77de9)
+
+### Performance Improvements
+* **photos photo model:** cache photos on first call [#c231874](https://github.com/CodeCorico/allons-y-photos/commit/c231874)
+* **photos photo model:** select only id and cover when update photos [#91e0b13](https://github.com/CodeCorico/allons-y-photos/commit/91e0b13)
+
 <a name="1.0.5"></a>
 # [1.0.5](https://github.com/CodeCorico/allons-y-photos/compare/1.0.4...1.0.5) (2017-03-05)
 
