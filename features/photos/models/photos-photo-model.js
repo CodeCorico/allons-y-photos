@@ -125,7 +125,8 @@ module.exports = function() {
               select: ['cover', 'shotTime', 'isVideo', 'thumbnail', 'url', 'moments', 'people']
             })
             .sort({
-              shotTime: 'desc'
+              shotTime: 'desc',
+              source: 'asc'
             })
             .exec(function(err, photos) {
               if (err || !photos) {
