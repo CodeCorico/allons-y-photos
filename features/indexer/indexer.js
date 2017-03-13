@@ -297,6 +297,10 @@ module.exports = function($allonsy, $glob, $done) {
 
           photosIndexesModel.save(function() {
             _workingOutput(startDate, files.length, added, updated, files.length, true);
+
+            $allonsy.sendMessage({
+              event: 'call(indexer/stop)'
+            });
           });
         });
     });

@@ -1,7 +1,7 @@
 module.exports = function() {
   'use strict';
 
-  DependencyInjection.model('PhotoModel', function($AbstractModel, $RealTimeService) {
+  DependencyInjection.model('PhotoModel', function($allonsy, $AbstractModel, $RealTimeService) {
 
     var REALTIME_EVENTS = {
           photos: {
@@ -114,6 +114,12 @@ module.exports = function() {
           });
 
           $RealTimeService.registerEvents(REALTIME_EVENTS);
+
+          $allonsy.on('message', function(args) {
+            if (args.event == 'call(indexer/stopped)') {
+              _this.clearPhotosCache();
+            }
+          });
         },
 
         clearPhotosCache: function() {
