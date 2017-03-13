@@ -33,7 +33,8 @@ module.exports = function() {
           async = require('async'),
           fs = require('fs-extra'),
           path = require('path'),
-          _mediaFolder = path.resolve('media');
+          _mediaFolder = path.resolve('media'),
+          _photosCache = null;
 
       return {
         identity: 'photos',
@@ -115,8 +116,16 @@ module.exports = function() {
           $RealTimeService.registerEvents(REALTIME_EVENTS);
         },
 
+        clearPhotosCache: function() {
+          _photosCache = null;
+        },
+
         callPhotos: function($socket, eventName, args, callback, addOnly, socketOrigin) {
           eventName = eventName || 'photos';
+
+          if (_photosCache && $socket) {
+            return $RealTimeService.fire(eventName, _photosCache, $socket);
+          }
 
           var sockets = $socket ? [$socket] : $RealTimeService.socketsFromOrigin(eventName);
 
@@ -156,6 +165,12 @@ module.exports = function() {
               });
 
               var eventResult = {
+                photosLength: photosLength,
+                videosLength: videosLength,
+                photos: photos
+              };
+
+              _photosCache = {
                 photosLength: photosLength,
                 videosLength: videosLength,
                 photos: photos
@@ -208,6 +223,8 @@ module.exports = function() {
                   });
               }, function() {
                 setTimeout(function() {
+                  _this.clearPhotosCache();
+
                   _this.callPhotos(null, null, null, null, true, $socket);
                 });
               });
@@ -265,6 +282,8 @@ module.exports = function() {
                   });
               }, function() {
                 setTimeout(function() {
+                  _this.clearPhotosCache();
+
                   _this.callPhotos();
                 });
               });
@@ -317,6 +336,8 @@ module.exports = function() {
                 }
 
                 setTimeout(function() {
+                  _this.clearPhotosCache();
+
                   _this.callPhotos(null, null, null, null, true, $socket);
                 });
               });
@@ -354,6 +375,8 @@ module.exports = function() {
                   });
               }, function() {
                 setTimeout(function() {
+                  _this.clearPhotosCache();
+
                   _this.callPhotos();
                 });
               });
