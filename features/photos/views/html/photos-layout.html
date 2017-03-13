@@ -19,6 +19,9 @@
                 {{#if people && people.length}}
                   <div class="photos-layout-photo-people"><i class="fa fa-user"></i> {{people.length}}</div>
                 {{/if}}
+                {{#if moments && moments.length}}
+                  <div class="photos-layout-photo-moments"><i class="fa fa-tag"></i> {{moments.length}}</div>
+                {{/if}}
                 <div class="photos-layout-photo-check {{selected ? 'selected' : ''}}" on-click="select">
                   {{#if selected}}
                     <i class="fa fa-check"></i>
