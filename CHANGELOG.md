@@ -1,3 +1,14 @@
+<a name="1.0.7"></a>
+# [1.0.7](https://github.com/CodeCorico/allons-y-photos/compare/1.0.6...1.0.7) (2017-03-16)
+
+### Bug Fixes
+* **photos nav:** move the Moments before the People section [#d41f221](https://github.com/CodeCorico/allons-y-photos/commit/d41f221)
+
+### Performance Improvements
+* **indexer:** create smaller covers [#1cbade4](https://github.com/CodeCorico/allons-y-photos/commit/1cbade4)
+* **photos layout:** remove the select mode photos animations [#96c7270](https://github.com/CodeCorico/allons-y-photos/commit/96c7270)
+* **photos layout:** split the dates to load to every 25 photos [#f292fc9](https://github.com/CodeCorico/allons-y-photos/commit/f292fc9)
+
 <a name="1.0.6"></a>
 # [1.0.6](https://github.com/CodeCorico/allons-y-photos/compare/1.0.5...1.0.6) (2017-03-13)
 
