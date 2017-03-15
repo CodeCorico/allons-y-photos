@@ -246,7 +246,7 @@ module.exports = function($allonsy, $glob, $done) {
 
               if (isVideo) {
                 photo.isVideo = true;
-                photo.cover = fileName.replace('.mp4', '-400x400.png');
+                photo.cover = fileName.replace('.mp4', '-120x120.png');
 
                 ffmpeg(file)
                   .on('error', function() {
@@ -262,7 +262,7 @@ module.exports = function($allonsy, $glob, $done) {
                   })
                   .screenshots({
                     count: 1,
-                    size: '400x?',
+                    size: '120x?',
                     folder: path.join(destDir, dateDir),
                     filename: photo.cover
                   });

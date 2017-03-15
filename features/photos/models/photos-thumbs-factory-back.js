@@ -12,8 +12,8 @@ module.exports = function() {
       var destPath = path.resolve('./media/photos', dateDir),
           SIZES = [{
             name: 'cover',
-            width: 400,
-            height: 400,
+            width: 120,
+            height: 120,
             path: destPath
           }, {
             name: 'thumbnail',
