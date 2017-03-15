@@ -7,7 +7,9 @@
       <div class="photos-layout-content" style="top: {{contentTop}}px;">
         <div class="photos-layout-content-space"></div>
         {{#dates}}
-          <h2>{{dateTitle}}</h2>
+          {{#if !isPart}}
+            <h2>{{dateTitle}}</h2>
+          {{/if}}
           {{#photos}}
             <a
               href="#{{index}}"

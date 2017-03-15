@@ -118,9 +118,30 @@
       $photoTemplate.remove();
       $photoTemplate = null;
 
+      var lastTotalPhotos = 0;
+
       datesSelection.forEach(function(date) {
+        var photosLength = date.photos.length,
+            modulo = 0;
+
+        if (date.isPart) {
+          modulo = lastTotalPhotos % maxPhotoLine;
+
+          if (modulo > 0) {
+            containerHeight -= photoHeight;
+            photosLength -= maxPhotoLine - modulo;
+          }
+
+          lastTotalPhotos += date.photos.length;
+        }
+        else {
+          lastTotalPhotos = date.photos.length;
+        }
+
         date.top = containerHeight;
-        containerHeight += titleHeight + (Math.ceil(date.photos.length / maxPhotoLine) * photoHeight);
+        containerHeight +=
+          (date.isPart ? (modulo > 0 ? photoHeight : 0) : titleHeight) +
+          (Math.ceil(photosLength / maxPhotoLine) * photoHeight);
         date.bottom = containerHeight;
       });
 
@@ -516,15 +537,22 @@
         $PhotosService.config('photos', args.photos);
 
         args.photos.forEach(function(photo, index) {
-          if (photo.shotTime != lastTime) {
+          if (photo.shotTime != lastTime || (i > -1 && datesCache[i].photos.length > 24)) {
+            var isPart = photo.shotTime == lastTime;
+
             lastTime = photo.shotTime;
             i++;
 
             var year = new Date(photo.shotTime).getFullYear();
 
+            if (isPart) {
+              console.log('isPart', window.moment(lastTime).format('D MMMM' + (year != activeYear ? ' YYYY' : '')));
+            }
+
             datesCache[i] = {
               date: lastTime,
               dateTitle: window.moment(lastTime).format('D MMMM' + (year != activeYear ? ' YYYY' : '')),
+              isPart: isPart,
               photos: []
             };
           }
