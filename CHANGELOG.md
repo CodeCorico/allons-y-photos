@@ -1,3 +1,9 @@
+<a name="1.0.8"></a>
+# [1.0.8](https://github.com/CodeCorico/allons-y-photos/compare/1.0.7...1.0.8) (2017-03-16)
+
+### Bug Fixes
+* **photos layout:** display modulo empty photos if the first date is a part [#f88bc1b](https://github.com/CodeCorico/allons-y-photos/commit/f88bc1b)
+
 <a name="1.0.7"></a>
 # [1.0.7](https://github.com/CodeCorico/allons-y-photos/compare/1.0.6...1.0.7) (2017-03-16)
 
