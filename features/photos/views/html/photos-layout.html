@@ -6,7 +6,12 @@
     <div class="photos-layout-container" style="height: {{containerHeight}}px;">
       <div class="photos-layout-content" style="top: {{contentTop}}px;">
         <div class="photos-layout-content-space"></div>
-        {{#dates}}
+        {{#dates:i}}
+          {{#if isPart && i === 0}}
+            {{#modulo}}
+              <div class="photos-layout-photo"></div>
+            {{/modulo}}
+          {{/if}}
           {{#if !isPart}}
             <h2>{{dateTitle}}</h2>
           {{/if}}

@@ -103,6 +103,10 @@
             .attr('class', 'photos-layout-photo')
             .css('visibility', 'hidden');
 
+      if (!datesSelection) {
+        return;
+      }
+
       $content.append($titleTemplate);
       $content.append($photoTemplate);
 
@@ -126,6 +130,7 @@
 
         if (date.isPart) {
           modulo = lastTotalPhotos % maxPhotoLine;
+          date.modulo = new Array(modulo);
 
           if (modulo > 0) {
             containerHeight -= photoHeight;
@@ -544,10 +549,6 @@
             i++;
 
             var year = new Date(photo.shotTime).getFullYear();
-
-            if (isPart) {
-              console.log('isPart', window.moment(lastTime).format('D MMMM' + (year != activeYear ? ' YYYY' : '')));
-            }
 
             datesCache[i] = {
               date: lastTime,
