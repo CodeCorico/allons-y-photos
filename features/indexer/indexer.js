@@ -8,6 +8,7 @@ module.exports = function($allonsy, $glob, $done) {
       ffmpeg = require('fluent-ffmpeg'),
 
       INDEXER_PATH = path.resolve(process.env.INDEXER_PATH),
+      INDEXER_VIDEOS = !process.env.INDEXER_VIDEOS || process.env.INDEXER_VIDEOS == 'true',
       INDEXER_CONVERT_MOV = process.env.INDEXER_CONVERT_MOV && process.env.INDEXER_CONVERT_MOV == 'true',
       destDir = path.resolve('media/photos'),
       logFilePath = path.resolve('indexer.log');
@@ -104,10 +105,14 @@ module.exports = function($allonsy, $glob, $done) {
 
     _workingOutput(startDate, count, added, updated, '');
 
-    var extensions = ['jpeg', 'jpg', 'gif', 'png', 'mp4'];
+    var extensions = ['jpeg', 'jpg', 'gif', 'png'];
 
-    if (INDEXER_CONVERT_MOV) {
-      extensions.push('mov');
+    if (INDEXER_VIDEOS) {
+      extensions.push('mp4');
+
+      if (INDEXER_CONVERT_MOV) {
+        extensions.push('mov');
+      }
     }
 
     var files = $glob
