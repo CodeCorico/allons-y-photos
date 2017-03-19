@@ -1,3 +1,11 @@
+<a name="1.0.9"></a>
+# [1.0.9](https://github.com/CodeCorico/allons-y-photos/compare/1.0.8...1.0.9) (2017-03-19)
+
+### Features
+* **photos layout:** add people/moments tooltips [#f2556c1](https://github.com/CodeCorico/allons-y-photos/commit/f2556c1)
+* **photos layout:** add people/moments loading on change [#cc55dc8](https://github.com/CodeCorico/allons-y-photos/commit/cc55dc8)
+* **photos:** can hide/show with the new photos-hidden permission [#4ce8179](https://github.com/CodeCorico/allons-y-photos/commit/4ce8179)
+
 <a name="1.0.8"></a>
 # [1.0.8](https://github.com/CodeCorico/allons-y-photos/compare/1.0.7...1.0.8) (2017-03-16)
 
