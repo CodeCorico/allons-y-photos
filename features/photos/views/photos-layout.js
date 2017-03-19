@@ -14,6 +14,7 @@
             selectionModeActivated: false,
             canAdministrateMoments: _user && _user.permissionsPublic && _user.permissionsPublic.indexOf('photos-moments') > -1,
             canAdministratePeople: _user && _user.permissionsPublic && _user.permissionsPublic.indexOf('photos-people') > -1,
+            canAdministrateHidden: _user && _user.permissionsPublic && _user.permissionsPublic.indexOf('photos-hidden') > -1,
 
             momentAddFocus: function(event, value, component) {
               PhotosLayout.get('momentAddChange')(event, value, component);
@@ -504,6 +505,20 @@
       _addType('people', 'avatar');
     });
 
+    PhotosLayout.on('hideShow', function() {
+      var photos = Object.keys(_selects).map(function(index) {
+        return $PhotosService.config('photos')[index].url;
+      });
+
+      if (!photos.length) {
+        return;
+      }
+
+      $socket.emit('update(photos/hidden)', {
+        photos: photos
+      });
+    });
+
     PhotosLayout.on('teardown', function() {
       $RealTimeService.unregisterComponent('photosLayoutController');
       _$el.window.off('resize', _defineView);
@@ -620,6 +635,9 @@
         PhotosLayout.set('datesCache', datesCache);
         $PhotosService.config('moments', moments);
         $PhotosService.config('people', people);
+
+        PhotosLayout.set('momentLoading', false);
+        PhotosLayout.set('peopleLoading', false);
 
         _filters({
           value: $PhotosService.config('filters')

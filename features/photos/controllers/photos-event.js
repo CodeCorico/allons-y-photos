@@ -88,4 +88,20 @@ module.exports = [{
 
     PhotoModel.updateAvatar($socket, $message.name, $message.photos);
   }
+}, {
+  event: 'update(photos/hidden)',
+  permissions: ['photos-hidden'],
+  controller: function($socket, PhotoModel, $message) {
+    if (!this.validMessage($message, {
+      photos: ['object']
+    })) {
+      return;
+    }
+
+    if (!$message.photos.length) {
+      return;
+    }
+
+    PhotoModel.hideShow($socket, $message.photos);
+  }
 }];

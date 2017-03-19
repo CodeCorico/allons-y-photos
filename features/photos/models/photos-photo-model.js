@@ -24,6 +24,11 @@ module.exports = function() {
             title: 'People administration',
             description: 'People administration of the Photos app.',
             isPublic: true
+          },
+          'photos-hidden': {
+            title: 'Hidden photos',
+            description: 'Hidden photos administration.',
+            isPublic: true
           }
         };
 
@@ -34,7 +39,8 @@ module.exports = function() {
           fs = require('fs-extra'),
           path = require('path'),
           _mediaFolder = path.resolve('media'),
-          _photosCache = null;
+          _photosCache = null,
+          _photosWithoutHiddenCache = null;
 
       return {
         identity: 'photos',
@@ -65,6 +71,7 @@ module.exports = function() {
             index: true
           },
           cover: 'string',
+          isHidden: 'boolean',
           isVideo: 'boolean',
           moments: {
             type: 'array',
@@ -124,20 +131,24 @@ module.exports = function() {
 
         clearPhotosCache: function() {
           _photosCache = null;
+          _photosWithoutHiddenCache = null;
         },
 
         callPhotos: function($socket, eventName, args, callback, addOnly, socketOrigin) {
           eventName = eventName || 'photos';
 
-          if (_photosCache && $socket) {
+          if (_photosCache && $socket && $socket.user.hasPermission('photos-hidden')) {
             return $RealTimeService.fire(eventName, _photosCache, $socket);
+          }
+          else if (_photosWithoutHiddenCache && $socket && !$socket.user.hasPermission('photos-hidden')) {
+            return $RealTimeService.fire(eventName, _photosWithoutHiddenCache, $socket);
           }
 
           var sockets = $socket ? [$socket] : $RealTimeService.socketsFromOrigin(eventName);
 
           this
             .find({
-              select: ['cover', 'shotTime', 'isVideo', 'thumbnail', 'url', 'moments', 'people']
+              select: ['cover', 'shotTime', 'isHidden', 'isVideo', 'thumbnail', 'url', 'moments', 'people']
             })
             .sort({
               shotTime: 'desc',
@@ -149,7 +160,8 @@ module.exports = function() {
               }
 
               var photosLength = 0,
-                  videosLength = 0;
+                  videosLength = 0,
+                  photosWithoutHidden = [];
 
               photos = photos.map(function(photo) {
                 if (photo.isVideo) {
@@ -159,22 +171,23 @@ module.exports = function() {
                   photosLength++;
                 }
 
-                return {
+                photo = {
                   cover: photo.cover,
                   shotTime: photo.shotTime,
+                  isHidden: photo.isHidden,
                   isVideo: photo.isVideo,
                   thumbnail: photo.thumbnail,
                   url: photo.url,
                   moments: photo.moments,
                   people: photo.people
                 };
-              });
 
-              var eventResult = {
-                photosLength: photosLength,
-                videosLength: videosLength,
-                photos: photos
-              };
+                if (!photo.isHidden) {
+                  photosWithoutHidden.push(photo);
+                }
+
+                return photo;
+              });
 
               _photosCache = {
                 photosLength: photosLength,
@@ -182,12 +195,17 @@ module.exports = function() {
                 photos: photos
               };
 
-              if (addOnly) {
-                eventResult.addOnly = true;
-              }
+              _photosWithoutHiddenCache = {
+                photosLength: photosLength,
+                videosLength: videosLength,
+                photos: photosWithoutHidden
+              };
 
               sockets.forEach(function(socket) {
+                var eventResult = socket.user.hasPermission('photos-hidden') ? _photosCache : _photosWithoutHiddenCache;
+
                 eventResult.isOrigin = socket == $socket || socket == socketOrigin || false;
+                eventResult.addOnly = addOnly || false;
 
                 $RealTimeService.fire(eventName, eventResult, socket);
               });
@@ -422,6 +440,43 @@ module.exports = function() {
 
               $socket.emit('read(photos/avatar)', {
                 name: name
+              });
+            });
+        },
+
+        hideShow: function($socket, photos) {
+          var _this = this;
+
+          this
+            .find({
+              select: ['id', 'isHidden'],
+              where: {
+                url: photos
+              }
+            })
+            .exec(function(err, photos) {
+              if (err || !photos) {
+                return;
+              }
+
+              async.eachSeries(photos, function(photo, nextPhoto) {
+                photo.isHidden = !photo.isHidden;
+
+                _this
+                  .update({
+                    id: photo.id
+                  }, {
+                    isHidden: photo.isHidden
+                  })
+                  .exec(function() {
+                    nextPhoto();
+                  });
+              }, function() {
+                setTimeout(function() {
+                  _this.clearPhotosCache();
+
+                  _this.callPhotos();
+                });
               });
             });
         }
