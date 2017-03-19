@@ -1,3 +1,10 @@
+<a name="1.0.10"></a>
+# [1.0.10](https://github.com/CodeCorico/allons-y-photos/compare/1.0.9...1.0.10) (2017-03-19)
+
+### Features
+* **indexer:** add the env option to index videos [#23ea4e5](https://github.com/CodeCorico/allons-y-photos/commit/23ea4e5)
+* **indexer:** add the env option to index at start [#2d0807d](https://github.com/CodeCorico/allons-y-photos/commit/2d0807d)
+
 <a name="1.0.9"></a>
 # [1.0.9](https://github.com/CodeCorico/allons-y-photos/compare/1.0.8...1.0.9) (2017-03-19)
 
