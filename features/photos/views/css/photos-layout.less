@@ -12,6 +12,12 @@
 @-o-keyframes photos-layout-to-moment { 0% { opacity: 0.2; } 100% { opacity: 1; } }
 @keyframes photos-layout-to-moment { 0% { opacity: 0.2; } 100% { opacity: 1; } }
 
+@-webkit-keyframes photos-layout-add-button-loading { 0% { -webkit-transform: rotate(0); } 100% { -webkit-transform: rotate(360deg); } }
+@-moz-keyframes photos-layout-add-button-loading { 0% { -moz-transform: rotate(0); } 100% { -moz-transform: rotate(360deg); } }
+@-ms-keyframes photos-layout-add-button-loading { 0% { -ms-transform: rotate(0); } 100% { -ms-transform: rotate(360deg); } }
+@-o-keyframes photos-layout-add-button-loading { 0% { -o-transform: rotate(0); } 100% { -o-transform: rotate(360deg); } }
+@keyframes photos-layout-add-button-loading { 0% { transform: rotate(0); } 100% { transform: rotate(360deg); } }
+
 .photos-layout {
   position: absolute;
   top: 0;
@@ -269,7 +275,7 @@
       height: 3rem;
       box-sizing: border-box;
       margin: 0;
-      padding: 0 0 0.5rem;
+      padding: 0 0 0.7rem;
       border: 0;
       background: white;
       color: @accentColor;
@@ -278,6 +284,14 @@
       vertical-align: top;
       text-align: center;
       text-indent: 1px;
+
+      &.loading {
+        color: white;
+        background: @accentColor;
+        border-radius: 50%;
+        .transition(all 0.55s @easeOutQuart);
+        .animation(photos-layout-add-button-loading 1s linear infinite);
+      }
     }
 
     .photos-layout-avatar-button {

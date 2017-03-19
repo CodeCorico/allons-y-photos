@@ -18,7 +18,7 @@
           {{#photos}}
             <a
               href="#{{index}}"
-              class="photos-layout-photo {{isVideo ? 'is-video' : ''}}"
+              class="photos-layout-photo {{isHidden ? 'is-hidden' : ''}} {{isVideo ? 'is-video' : ''}}"
               style="background-image: url('{{cover}}');"
               on-click="select"
             >
@@ -60,6 +60,13 @@
     </div>
     <div class="clear"></div>
 
+    <div
+      class="photos-layout-remove-bar {{canAdministrateHidden ? 'show' : ''}}"
+    >
+      <button class="photos-layout-remove" on-click="hideShow">{{_('hide/show')}}</button>
+    </div>
+    <div class="clear"></div>
+
     <div class="photos-layout-people-bar {{canAdministratePeople ? 'show' : ''}} {{selectionUnique ? 'unique' : ''}}">
       <rv-require
         name="pl-autocomplete"
@@ -77,7 +84,7 @@
       ></rv-require>
 
       <button class="photos-layout-avatar-button" on-click="defineAvatar"><i class="fa fa-camera"></i></button>
-      <button class="photos-layout-add-button" on-click="addPeople">+</button>
+      <button class="photos-layout-add-button {{peopleLoading ? 'loading' : ''}}" on-click="addPeople">+</button>
     </div>
 
     <div class="photos-layout-moments-bar {{canAdministrateMoments ? 'show' : ''}}">
@@ -96,7 +103,7 @@
         data-bind-change="momentAddChange"
       ></rv-require>
 
-      <button class="photos-layout-add-button" on-click="addMoment">+</button>
+      <button class="photos-layout-add-button {{momentLoading ? 'loading' : ''}}" on-click="addMoment">+</button>
     </div>
   </div>
 </div>

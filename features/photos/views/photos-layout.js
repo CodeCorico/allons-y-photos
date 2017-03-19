@@ -445,10 +445,12 @@
     }
 
     PhotosLayout.on('addMoment', function() {
+      PhotosLayout.set('momentLoading', true);
       _addType('moment');
     });
 
     PhotosLayout.on('addPeople', function() {
+      PhotosLayout.set('peopleLoading', true);
       _addType('people');
     });
 
