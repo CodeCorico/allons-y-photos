@@ -20,5 +20,11 @@
     "message": "Convert .mov videos to .mp4 format:",
     "default": false,
     "when": ["INDEXER_VIDEOS=true", "INDEXER=true"]
+  }, {
+    "type": "confirm",
+    "name": "INDEXER_AT_START",
+    "message": "Start the Photos indexer when the service starts:",
+    "default": true,
+    "when": "INDEXER=true"
   }]
 }
