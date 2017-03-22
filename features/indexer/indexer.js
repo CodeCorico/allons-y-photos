@@ -410,6 +410,8 @@ module.exports = function($allonsy, $glob, $done) {
   var $DatabaseService = DependencyInjection.injector.controller.get('$DatabaseService');
 
   $DatabaseService.initModels(false, function() {
+    $allonsy.outputInfo('► PHOTOS INDEXER IS RUNNING');
+
     if (!process.env.INDEXER_AT_START || process.env.INDEXER_AT_START == 'true') {
       _index();
     }
