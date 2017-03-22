@@ -335,7 +335,8 @@
             dates.push({
               date: date.date,
               dateTitle: date.dateTitle,
-              photos: photos
+              photos: photos,
+              isPart: date.isPart
             });
           }
         });
