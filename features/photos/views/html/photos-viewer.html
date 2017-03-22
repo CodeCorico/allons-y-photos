@@ -16,7 +16,7 @@
     >
       {{#if isVideo}}
         <video
-          x-webkit-airplay="allow" controls="controls" preload="none" poster="{{thumbnail}}" src="{{url}}" on-click="play"
+          x-webkit-airplay="allow" controls="controls" preload="none" poster="{{thumbnail}}" src="{{videoCache || url}}" on-click="play"
         ></video>
       {{/if}}
     </div>

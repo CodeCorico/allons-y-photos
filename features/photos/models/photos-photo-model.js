@@ -149,7 +149,7 @@ module.exports = function() {
 
           this
             .find({
-              select: ['cover', 'shotTime', 'isHidden', 'isVideo', 'thumbnail', 'url', 'moments', 'people']
+              select: ['cover', 'videoCache', 'shotTime', 'isHidden', 'isVideo', 'thumbnail', 'url', 'moments', 'people']
             })
             .sort({
               shotTime: 'desc',
@@ -174,6 +174,7 @@ module.exports = function() {
 
                 photo = {
                   cover: photo.cover,
+                  videoCache: photo.videoCache,
                   shotTime: photo.shotTime,
                   isHidden: photo.isHidden,
                   isVideo: photo.isVideo,
