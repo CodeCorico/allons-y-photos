@@ -16,6 +16,12 @@
     "when": "INDEXER=true"
   }, {
     "type": "confirm",
+    "name": "INDEXER_VIDEOS_COMPRESS",
+    "message": "Compress .mp4 files to 720p format:",
+    "default": false,
+    "when": ["INDEXER_VIDEOS=true", "INDEXER=true"]
+  }, {
+    "type": "confirm",
     "name": "INDEXER_CONVERT_MOV",
     "message": "Convert .mov videos to .mp4 format:",
     "default": false,

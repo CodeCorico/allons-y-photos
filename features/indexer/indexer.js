@@ -9,6 +9,7 @@ module.exports = function($allonsy, $glob, $done) {
 
       INDEXER_PATH = path.resolve(process.env.INDEXER_PATH),
       INDEXER_VIDEOS = !process.env.INDEXER_VIDEOS || process.env.INDEXER_VIDEOS == 'true',
+      INDEXER_VIDEOS_COMPRESS = process.env.INDEXER_VIDEOS_COMPRESS && process.env.INDEXER_VIDEOS_COMPRESS == 'true',
       INDEXER_CONVERT_MOV = process.env.INDEXER_CONVERT_MOV && process.env.INDEXER_CONVERT_MOV == 'true',
       destDir = path.resolve('media/photos'),
       logFilePath = path.resolve('indexer.log');
@@ -33,7 +34,7 @@ module.exports = function($allonsy, $glob, $done) {
     return ((hours ? hours + 'h' : '') + (minutes ? ' ' + minutes + 'min' : '') + (seconds ? ' ' + seconds + 's' : '')).trim();
   }
 
-  function _workingOutput(startDate, count, added, updated, total, done, converting) {
+  function _workingOutput(startDate, count, added, updated, total, done, more) {
     var day = startDate.getDate(),
         months = startDate.getMonth() + 1,
         hours = startDate.getHours(),
@@ -47,7 +48,7 @@ module.exports = function($allonsy, $glob, $done) {
     $allonsy.outputInfo('[' + (done ? 'done' : 'working') + ':indexer]► [' +
       day + '/' + months + '/' + startDate.getFullYear() + ' ' + hours + ':' + minutes +
     '] Indexer: ' + count + (total ? '/' + total : '') + ' (+' + added + ', ~' + updated + ') ' +
-    (converting || converting === 0 ? '(Converting ' + converting + '%) ' : '') +
+    more +
     '(' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
   }
 
@@ -159,7 +160,9 @@ module.exports = function($allonsy, $glob, $done) {
           })
           .on('progress', function(progress) {
             _workingOutput(startDate, count, added, updated, files.length, null,
-              progress.percent || progress.percent === 0 ? Math.max(0, Math.min(100, Math.round(progress.percent))) : 100
+              '(Converting ' + (
+                progress.percent || progress.percent === 0 ? Math.max(0, Math.min(100, Math.round(progress.percent))) : 100
+              ) + '%) '
             );
           })
           .on('end', function() {
@@ -250,27 +253,74 @@ module.exports = function($allonsy, $glob, $done) {
               photo.shotTime = photo.shotDate.getTime();
 
               if (isVideo) {
+                var destPath = path.join(destDir, dateDir),
+                    videoOnError = false;
+
                 photo.isVideo = true;
                 photo.cover = fileName.replace('.mp4', '-120x120.png');
 
-                ffmpeg(file)
-                  .on('error', function() {
-                    _log(logFileOptions, 'can\'t generate a thumbnail (with ffmpeg) for: ' + photo.source);
+                async.waterfall([function(nextFunc) {
+                  if (fs.existsSync(path.join(destPath, photo.cover))) {
+                    return nextFunc();
+                  }
 
-                    nextFile();
-                  })
-                  .on('end', function() {
-                    photo.cover = '/media/photos/' + dateDir + '/' + photo.cover;
-                    photo.thumbnail = photo.cover;
+                  ffmpeg(file)
+                    .on('error', function() {
+                      _log(logFileOptions, 'can\'t generate a thumbnail (with ffmpeg) for: ' + photo.source);
 
-                    _savePhoto(photoModel, photo, photosIndexes, nextFile);
-                  })
-                  .screenshots({
-                    count: 1,
-                    size: '120x?',
-                    folder: path.join(destDir, dateDir),
-                    filename: photo.cover
-                  });
+                      videoOnError = true;
+
+                      nextFunc();
+                    })
+                    .on('end', function() {
+                      photo.cover = '/media/photos/' + dateDir + '/' + photo.cover;
+                      photo.thumbnail = photo.cover;
+
+                      nextFunc();
+                    })
+                    .screenshots({
+                      count: 1,
+                      size: '120x?',
+                      folder: destPath,
+                      filename: photo.cover
+                    });
+                }, function(nextFunc) {
+                  var destCompressFileName = fileName.replace('.mp4', '-720p.mp4'),
+                      destCompressFile = path.join(destPath, destCompressFileName);
+
+                  if (!INDEXER_VIDEOS_COMPRESS || fs.existsSync(destCompressFile)) {
+                    return nextFunc();
+                  }
+
+                  ffmpeg(file)
+                    .on('error', function() {
+                      _log(logFileOptions, 'can\'t generate a compressed video (with ffmpeg) for: ' + photo.source);
+
+                      videoOnError = true;
+
+                      nextFunc();
+                    })
+                    .on('progress', function(progress) {
+                      _workingOutput(startDate, count, added, updated, files.length, null,
+                        '(Compressing ' + (
+                          progress.percent || progress.percent === 0 ? Math.max(0, Math.min(100, Math.round(progress.percent))) : 100
+                        ) + '%) '
+                      );
+                    })
+                    .on('end', function() {
+                      _savePhoto(photoModel, photo, photosIndexes, nextFile);
+                    })
+                    .size('1280x720')
+                    .videoBitrate('4000k')
+                    .output(destCompressFile)
+                    .run();
+                }, function() {
+                  if (videoOnError) {
+                    return nextFile();
+                  }
+
+                  _savePhoto(photoModel, photo, photosIndexes, nextFile);
+                }]);
 
                 return;
               }
