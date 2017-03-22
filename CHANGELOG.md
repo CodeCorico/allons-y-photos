@@ -1,3 +1,15 @@
+<a name="1.0.11"></a>
+# [1.0.11](https://github.com/CodeCorico/allons-y-photos/compare/1.0.10...1.0.11) (2017-03-22)
+
+### Features
+* **indexer:** compress videos to 720p [#501e3cb](https://github.com/CodeCorico/allons-y-photos/commit/501e3cb)
+
+### Bug Fixes
+* **photos layout:** use isPart in filtered views [#1825d31](https://github.com/CodeCorico/allons-y-photos/commit/1825d31)
+
+### Performance Improvements
+* **indexer:** get the database photos at start instead of for every photo iteration [#6ce7a7f](https://github.com/CodeCorico/allons-y-photos/commit/6ce7a7f)
+
 <a name="1.0.10"></a>
 # [1.0.10](https://github.com/CodeCorico/allons-y-photos/compare/1.0.9...1.0.10) (2017-03-19)
 
