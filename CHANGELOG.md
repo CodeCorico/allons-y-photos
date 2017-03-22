@@ -1,3 +1,11 @@
+<a name="1.0.12"></a>
+# [1.0.12](https://github.com/CodeCorico/allons-y-photos/compare/1.0.11...1.0.12) (2017-03-22)
+
+### Features
+* **indexer:** register the video compressed to be viewed [#1fb51fb](https://github.com/CodeCorico/allons-y-photos/commit/1fb51fb)
+* **photos viewer:** display the video compressed [#cf627e6](https://github.com/CodeCorico/allons-y-photos/commit/cf627e6)
+* **indexer:** output info when the indexer is ready [#3ec3299](https://github.com/CodeCorico/allons-y-photos/commit/3ec3299)
+
 <a name="1.0.11"></a>
 # [1.0.11](https://github.com/CodeCorico/allons-y-photos/compare/1.0.10...1.0.11) (2017-03-22)
 
