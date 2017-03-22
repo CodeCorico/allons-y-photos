@@ -48,7 +48,7 @@ module.exports = function($allonsy, $glob, $done) {
     $allonsy.outputInfo('[' + (done ? 'done' : 'working') + ':indexer]► [' +
       day + '/' + months + '/' + startDate.getFullYear() + ' ' + hours + ':' + minutes +
     '] Indexer: ' + count + (total ? '/' + total : '') + ' (+' + added + ', ~' + updated + ') ' +
-    more +
+    (more || '') +
     '(' + (done ? 'in ' : '') + _elaspedTime(startDate) + ')');
   }
 
@@ -117,87 +117,103 @@ module.exports = function($allonsy, $glob, $done) {
     }
 
     var files = $glob
-      .sync(path.join(INDEXER_PATH, '/**/*.@(' + extensions.join('|') + '|' + extensions.map(function(ext) {
-        return ext.toUpperCase();
-      }).join('|') + ')'))
-      .reverse();
+          .sync(path.join(INDEXER_PATH, '/**/*.@(' + extensions.join('|') + '|' + extensions.map(function(ext) {
+            return ext.toUpperCase();
+          }).join('|') + ')'))
+          .reverse(),
+        photosRef = {};
 
     _workingOutput(startDate, count, added, updated, files.length);
 
     fs.ensureDirSync(destDir);
 
-    async.eachSeries(files, function(file, nextFile) {
-      file = path.resolve(file);
+    PhotoModel
+      .find()
+      .exec(function(err, photos) {
+        if (err || !photos) {
+          _log(logFileOptions, 'can\'t retrive the photos from the database');
 
-      _workingOutput(startDate, count, added, updated, files.length);
-      count++;
+          _workingOutput(startDate, files.length, added, updated, files.length, true);
 
-      var stat = fs.statSync(file),
-          ext = path.extname(file).toLowerCase(),
-          isVideo = ext == '.mp4' || ext == '.mov',
-          fileName = path.basename(file);
-
-      if (ext == '.mov' && fs.existsSync(file.replace('.mov', '.mp4'))) {
-        return nextFile();
-      }
-
-      async.waterfall([function(nextFunc) {
-        if (!isVideo || ext != '.mov') {
-          return nextFunc();
+          return;
         }
 
-        var newFile = file.replace('.mov', '.mp4');
+        photos.forEach(function(photo) {
+          photosRef[photo.source] = photo;
+        });
 
-        _workingOutput(startDate, count, added, updated, files.length, null, 0);
+        async.eachSeries(files, function(file, _nextFile) {
+          file = path.resolve(file);
 
-        ffmpeg(file)
-          .videoCodec('libx264')
-          .output(newFile)
-          .on('error', function() {
-            _log(logFileOptions, 'can\'t convert the .mov format (with ffmpeg) for: ' + file);
+          function nextFile() {
+            async.setImmediate(_nextFile);
+          }
 
-            nextFile();
-          })
-          .on('progress', function(progress) {
-            _workingOutput(startDate, count, added, updated, files.length, null,
-              '(Converting ' + (
-                progress.percent || progress.percent === 0 ? Math.max(0, Math.min(100, Math.round(progress.percent))) : 100
-              ) + '%) '
-            );
-          })
-          .on('end', function() {
-            file = newFile;
-            fileName = path.basename(file);
-            ext = '.mp4';
+          _workingOutput(startDate, count, added, updated, files.length);
+          count++;
 
-            nextFunc();
-          })
-          .run();
+          var stat = fs.statSync(file),
+              ext = path.extname(file).toLowerCase(),
+              isVideo = ext == '.mp4' || ext == '.mov',
+              fileName = path.basename(file),
+              photo = null,
+              photoModel = null,
+              videoOnError = false,
+              destPath = null;
 
-      }, function() {
-        if (!stat || !stat.mtime) {
-          _log(logFileOptions, 'no stat found for: ' + file);
+          if (ext == '.mov' && fs.existsSync(file.replace('.mov', '.mp4'))) {
+            return nextFile();
+          }
 
-          return nextFile();
-        }
+          async.waterfall([function(nextFunc) {
+            if (!isVideo || ext != '.mov') {
+              return nextFunc();
+            }
 
-        var photo = {
-          source: file,
-          sourceModifiedAt: stat.mtime.getTime()
-        };
+            var newFile = file.replace('.mov', '.mp4');
 
-        PhotoModel
-          .findOrCreate({
-            source: photo.source
-          })
-          .exec(function(err, photoModel) {
-            if (err || !photoModel) {
-              _log(logFileOptions, 'no photo model created for: ' + photo.source);
+            _workingOutput(startDate, count, added, updated, files.length, null, 0);
+
+            console.log('ici 1');
+
+            ffmpeg(file)
+              .videoCodec('libx264')
+              .output(newFile)
+              .on('error', function() {
+                _log(logFileOptions, 'can\'t convert the .mov format (with ffmpeg) for: ' + file);
+
+                nextFile();
+              })
+              .on('progress', function(progress) {
+                _workingOutput(startDate, count, added, updated, files.length, null,
+                  '(Converting ' + (
+                    progress.percent || progress.percent === 0 ? Math.max(0, Math.min(100, Math.round(progress.percent))) : 100
+                  ) + '%) '
+                );
+              })
+              .on('end', function() {
+                file = newFile;
+                fileName = path.basename(file);
+                ext = '.mp4';
+
+                nextFunc();
+              })
+              .run();
+
+          }, function(nextFunc) {
+            if (!stat || !stat.mtime) {
+              _log(logFileOptions, 'no stat found for: ' + file);
 
               return nextFile();
             }
 
-            if (photoModel.url && photoModel.sourceModifiedAt && photoModel.sourceModifiedAt == photo.sourceModifiedAt) {
+            photo = {
+              source: file,
+              sourceModifiedAt: stat.mtime.getTime()
+            };
+            photoModel = photosRef[photo.source];
+
+            if (photoModel && photoModel.sourceModifiedAt && photoModel.sourceModifiedAt == photo.sourceModifiedAt) {
               _updatePhotosIndexes(photoModel, photosIndexes);
 
               if (!photoModel.cover) {
@@ -207,6 +223,26 @@ module.exports = function($allonsy, $glob, $done) {
               return nextFile();
             }
 
+            if (photoModel) {
+              return nextFunc();
+            }
+
+            PhotoModel
+              .create({
+                source: photo.source
+              })
+              .exec(function(err, model) {
+                if (err || !model) {
+                  _log(logFileOptions, 'no photo model created for: ' + photo.source);
+
+                  return nextFile();
+                }
+
+                photoModel = model;
+
+                nextFunc();
+              });
+          }, function(nextFunc) {
             if (photoModel.url) {
               updated++;
             }
@@ -252,113 +288,111 @@ module.exports = function($allonsy, $glob, $done) {
               photo.shotDate = new Date(Date.UTC(dateDir.substr(0, 4), parseInt(dateDir.substr(4, 2), 10) - 1, dateDir.substr(6, 2)));
               photo.shotTime = photo.shotDate.getTime();
 
-              if (isVideo) {
-                var destPath = path.join(destDir, dateDir),
-                    videoOnError = false;
-
-                photo.isVideo = true;
-                photo.cover = fileName.replace('.mp4', '-120x120.png');
-
-                async.waterfall([function(nextFunc) {
-                  if (fs.existsSync(path.join(destPath, photo.cover))) {
-                    return nextFunc();
-                  }
-
-                  ffmpeg(file)
-                    .on('error', function() {
-                      _log(logFileOptions, 'can\'t generate a thumbnail (with ffmpeg) for: ' + photo.source);
-
-                      videoOnError = true;
-
-                      nextFunc();
-                    })
-                    .on('end', function() {
-                      photo.cover = '/media/photos/' + dateDir + '/' + photo.cover;
-                      photo.thumbnail = photo.cover;
-
-                      nextFunc();
-                    })
-                    .screenshots({
-                      count: 1,
-                      size: '120x?',
-                      folder: destPath,
-                      filename: photo.cover
-                    });
-                }, function(nextFunc) {
-                  var destCompressFileName = fileName.replace('.mp4', '-720p.mp4'),
-                      destCompressFile = path.join(destPath, destCompressFileName);
-
-                  if (!INDEXER_VIDEOS_COMPRESS || fs.existsSync(destCompressFile)) {
-                    return nextFunc();
-                  }
-
-                  ffmpeg(file)
-                    .on('error', function() {
-                      _log(logFileOptions, 'can\'t generate a compressed video (with ffmpeg) for: ' + photo.source);
-
-                      videoOnError = true;
-
-                      nextFunc();
-                    })
-                    .on('progress', function(progress) {
-                      _workingOutput(startDate, count, added, updated, files.length, null,
-                        '(Compressing ' + (
-                          progress.percent || progress.percent === 0 ? Math.max(0, Math.min(100, Math.round(progress.percent))) : 100
-                        ) + '%) '
-                      );
-                    })
-                    .on('end', function() {
-                      _savePhoto(photoModel, photo, photosIndexes, nextFile);
-                    })
-                    .size('1280x720')
-                    .videoBitrate('4000k')
-                    .output(destCompressFile)
-                    .run();
-                }, function() {
-                  if (videoOnError) {
-                    return nextFile();
-                  }
-
+              if (!isVideo) {
+                photosThumbsFactory(photo, dateDir, function() {
                   _savePhoto(photoModel, photo, photosIndexes, nextFile);
-                }]);
+                });
 
                 return;
               }
 
-              photosThumbsFactory(photo, dateDir, function() {
+              destPath = path.join(destDir, dateDir);
+
+              photo.isVideo = true;
+              photo.cover = fileName.replace('.mp4', '-120x120.png');
+
+              if (fs.existsSync(path.join(destPath, photo.cover))) {
+                return nextFunc();
+              }
+
+              ffmpeg(file)
+                .on('error', function() {
+                  _log(logFileOptions, 'can\'t generate a thumbnail (with ffmpeg) for: ' + photo.source);
+
+                  videoOnError = true;
+
+                  nextFunc();
+                })
+                .on('end', function() {
+                  photo.cover = '/media/photos/' + dateDir + '/' + photo.cover;
+                  photo.thumbnail = photo.cover;
+
+                  nextFunc();
+                })
+                .screenshots({
+                  count: 1,
+                  size: '120x?',
+                  folder: destPath,
+                  filename: photo.cover
+                });
+            });
+          }, function(nextFunc) {
+            var destCompressFileName = fileName.replace('.mp4', '-720p.mp4'),
+                destCompressFile = path.join(destPath, destCompressFileName);
+
+            if (!INDEXER_VIDEOS_COMPRESS || fs.existsSync(destCompressFile)) {
+              return nextFunc();
+            }
+
+            ffmpeg(file)
+              .on('error', function() {
+                _log(logFileOptions, 'can\'t generate a compressed video (with ffmpeg) for: ' + photo.source);
+
+                videoOnError = true;
+
+                nextFunc();
+              })
+              .on('progress', function(progress) {
+                _workingOutput(startDate, count, added, updated, files.length, null,
+                  '(Compressing ' + (
+                    progress.percent || progress.percent === 0 ? Math.max(0, Math.min(100, Math.round(progress.percent))) : 100
+                  ) + '%) '
+                );
+              })
+              .on('end', function() {
                 _savePhoto(photoModel, photo, photosIndexes, nextFile);
+              })
+              .size('1280x720')
+              .videoBitrate('4000k')
+              .output(destCompressFile)
+              .run();
+          }, function() {
+            if (videoOnError) {
+              return nextFile();
+            }
+
+            _savePhoto(photoModel, photo, photosIndexes, nextFile);
+          }]);
+        }, function() {
+          _workingOutput(startDate, count, added, updated, files.length);
+
+          ExifService.stop();
+
+          EntityModel
+            .findOrCreate({
+              entityType: 'photosIndexes'
+            })
+            .exec(function(err, photosIndexesModel) {
+              if (err || !photosIndexesModel) {
+                _log(logFileOptions, err && err.message || 'no photosIndexes found');
+
+                return _workingOutput(startDate, files.length, added, updated, files.length, true);
+              }
+
+              photosIndexesModel.dates = photosIndexes.dates;
+              photosIndexesModel.total = photosIndexes.total;
+
+              photosIndexesModel.save(function() {
+                _workingOutput(startDate, files.length, added, updated, files.length, true);
+
+                $allonsy.sendMessage({
+                  event: 'call(indexer/stop)'
+                });
               });
             });
-          });
-      }]);
-    }, function() {
-      _workingOutput(startDate, count, added, updated, files.length);
-
-      ExifService.stop();
-
-      EntityModel
-        .findOrCreate({
-          entityType: 'photosIndexes'
-        })
-        .exec(function(err, photosIndexesModel) {
-          if (err || !photosIndexesModel) {
-            _log(logFileOptions, err && err.message || 'no photosIndexes found');
-
-            return _workingOutput(startDate, files.length, added, updated, files.length, true);
-          }
-
-          photosIndexesModel.dates = photosIndexes.dates;
-          photosIndexesModel.total = photosIndexes.total;
-
-          photosIndexesModel.save(function() {
-            _workingOutput(startDate, files.length, added, updated, files.length, true);
-
-            $allonsy.sendMessage({
-              event: 'call(indexer/stop)'
-            });
-          });
         });
-    });
+
+      });
   }
 
   function _infiniteLoop() {
