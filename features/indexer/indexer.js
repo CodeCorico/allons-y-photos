@@ -156,6 +156,7 @@ module.exports = function($allonsy, $glob, $done) {
               ext = path.extname(file).toLowerCase(),
               isVideo = ext == '.mp4' || ext == '.mov',
               fileName = path.basename(file),
+              dateDir = null,
               photo = null,
               photoModel = null,
               videoOnError = false,
@@ -173,8 +174,6 @@ module.exports = function($allonsy, $glob, $done) {
             var newFile = file.replace('.mov', '.mp4');
 
             _workingOutput(startDate, count, added, updated, files.length, null, 0);
-
-            console.log('ici 1');
 
             ffmpeg(file)
               .videoCodec('libx264')
@@ -251,11 +250,11 @@ module.exports = function($allonsy, $glob, $done) {
             }
 
             _exif(file, function(exif) {
-              var dateDir =
-                    exif && exif['Create Date'] && exif['Create Date'] != '0000:00:00 00:00:00' ? exif['Create Date'] : (
-                    exif && exif['Media Create Date'] && exif['Media Create Date'] != '0000:00:00 00:00:00' ? exif['Media Create Date'] :
-                    null
-                  );
+              dateDir =
+                exif && exif['Create Date'] && exif['Create Date'] != '0000:00:00 00:00:00' ? exif['Create Date'] : (
+                exif && exif['Media Create Date'] && exif['Media Create Date'] != '0000:00:00 00:00:00' ? exif['Media Create Date'] :
+                null
+              );
 
               if (dateDir) {
                 dateDir = dateDir.split(' ')[0].replace(/:/g, '');
@@ -350,7 +349,9 @@ module.exports = function($allonsy, $glob, $done) {
                 );
               })
               .on('end', function() {
-                _savePhoto(photoModel, photo, photosIndexes, nextFile);
+                photo.videoCache = '/media/photos/' + dateDir + '/' + destCompressFileName;
+
+                nextFunc();
               })
               .size('1280x720')
               .videoBitrate('4000k')

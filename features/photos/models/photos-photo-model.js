@@ -71,6 +71,7 @@ module.exports = function() {
             index: true
           },
           cover: 'string',
+          videoCache: 'string',
           isHidden: 'boolean',
           isVideo: 'boolean',
           moments: {
