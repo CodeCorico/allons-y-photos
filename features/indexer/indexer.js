@@ -64,6 +64,7 @@ module.exports = function($allonsy, $glob, $done) {
     photoModel.shotTime = photo.shotTime;
     photoModel.url = photo.url;
     photoModel.cover = photo.cover;
+    photoModel.videoCache = photo.videoCache;
     photoModel.thumbnail = photo.thumbnail;
     photoModel.isVideo = photo.isVideo || false;
     photoModel.updatedAt = new Date();
@@ -160,7 +161,8 @@ module.exports = function($allonsy, $glob, $done) {
               photo = null,
               photoModel = null,
               videoOnError = false,
-              destPath = null;
+              destPath = null,
+              isVideoHorizontal = false;
 
           if (ext == '.mov' && fs.existsSync(file.replace('.mov', '.mp4'))) {
             return nextFile();
@@ -295,35 +297,54 @@ module.exports = function($allonsy, $glob, $done) {
                 return;
               }
 
-              destPath = path.join(destDir, dateDir);
-
-              photo.isVideo = true;
-              photo.cover = fileName.replace('.mp4', '-120x120.png');
-
-              if (fs.existsSync(path.join(destPath, photo.cover))) {
-                return nextFunc();
-              }
-
-              ffmpeg(file)
-                .on('error', function() {
-                  _log(logFileOptions, 'can\'t generate a thumbnail (with ffmpeg) for: ' + photo.source);
+              ffmpeg.ffprobe(file, function(err, metadata) {
+                if (err || !metadata || !metadata.streams || !metadata.streams.length) {
+                  _log(logFileOptions, 'can\'t get the metadata (with ffprobe) for: ' + photo.source);
 
                   videoOnError = true;
 
-                  nextFunc();
-                })
-                .on('end', function() {
-                  photo.cover = '/media/photos/' + dateDir + '/' + photo.cover;
-                  photo.thumbnail = photo.cover;
+                  return nextFunc();
+                }
 
-                  nextFunc();
-                })
-                .screenshots({
-                  count: 1,
-                  size: '120x?',
-                  folder: destPath,
-                  filename: photo.cover
-                });
+                if (metadata.streams[0].rotation == '-90' || metadata.streams[0].rotation == '90') {
+                  var width = metadata.streams[0].height;
+                  metadata.streams[0].height = metadata.streams[0].width;
+                  metadata.streams[0].width = width;
+                }
+
+                isVideoHorizontal = metadata.streams[0].width > metadata.streams[0].height;
+
+                destPath = path.join(destDir, dateDir);
+
+                var cover = fileName.replace('.mp4', '-120x120.png');
+
+                photo.isVideo = true;
+
+                if (fs.existsSync(path.join(destPath, cover))) {
+                  return nextFunc();
+                }
+
+                ffmpeg(file)
+                  .on('error', function() {
+                    _log(logFileOptions, 'can\'t generate a thumbnail (with ffmpeg) for: ' + photo.source);
+
+                    videoOnError = true;
+
+                    nextFunc();
+                  })
+                  .on('end', function() {
+                    photo.cover = '/media/photos/' + dateDir + '/' + cover;
+                    photo.thumbnail = photo.cover;
+
+                    nextFunc();
+                  })
+                  .screenshots({
+                    count: 1,
+                    size: '120x?',
+                    folder: destPath,
+                    filename: cover
+                  });
+              });
             });
           }, function(nextFunc) {
             var destCompressFileName = fileName.replace('.mp4', '-720p.mp4'),
@@ -353,7 +374,7 @@ module.exports = function($allonsy, $glob, $done) {
 
                 nextFunc();
               })
-              .size('1280x720')
+              .size(isVideoHorizontal ? '1280x720' : '720x1280')
               .videoBitrate('4000k')
               .output(destCompressFile)
               .run();
