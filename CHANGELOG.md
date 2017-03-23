@@ -1,3 +1,9 @@
+<a name="1.0.13"></a>
+# [1.0.13](https://github.com/CodeCorico/allons-y-photos/compare/1.0.12...1.0.13) (2017-03-23)
+
+### Bug Fixes
+* **indexer:** check for vertical videos before compress them [#9a4afae](https://github.com/CodeCorico/allons-y-photos/commit/9a4afae)
+
 <a name="1.0.12"></a>
 # [1.0.12](https://github.com/CodeCorico/allons-y-photos/compare/1.0.11...1.0.12) (2017-03-22)
 
