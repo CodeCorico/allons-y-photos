@@ -21,6 +21,7 @@
         _lastDate = null,
         _displayDateTimeout = null,
         _$video = null,
+        _enterScrolling = false,
         _$el = {
           window: $(window),
           viewer: $(PhotosViewer.el),
@@ -97,7 +98,9 @@
         return;
       }
 
-      event.preventDefault();
+      if (!_$video) {
+        event.preventDefault();
+      }
       event.stopPropagation();
 
       if (PhotosViewer.get('move')) {
@@ -120,6 +123,7 @@
 
       if (eventType == 'start') {
         _scroll.startX = touch.clientX;
+        _enterScrolling = true;
       }
       else if (typeof _scroll.startX != 'undefined') {
         _scroll.x = touch.clientX;
@@ -128,10 +132,12 @@
 
         PhotosViewer.set('scrollLeft', scrollLeft);
 
-        if (eventType == 'end') {
+        if (eventType == 'end' && _enterScrolling) {
+          _enterScrolling = false;
+
           delete _scroll.startX;
 
-          if (scrollLeft === 0) {
+          if (Math.abs(scrollLeft) < 10) {
             if (!_$video) {
               PhotosViewer.set('displayBar', !PhotosViewer.get('displayBar'));
             }
