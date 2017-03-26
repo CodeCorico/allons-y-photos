@@ -1,3 +1,14 @@
+<a name="1.0.14"></a>
+# [1.0.14](https://github.com/CodeCorico/allons-y-photos/compare/1.0.13...1.0.14) (2017-03-26)
+
+### Features
+* **indexer:** remove deleted photos from database [#2472118](https://github.com/CodeCorico/allons-y-photos/commit/2472118)
+* **indexer:** wait for end of indexation before restart it [#d6c498b](https://github.com/CodeCorico/allons-y-photos/commit/d6c498b)
+* **indexer:** add the possibility to wath a path and move new photos to the indexer default path [#5a91a1f](https://github.com/CodeCorico/allons-y-photos/commit/5a91a1f)
+
+### Bug Fixes
+* **photos viewer:** display download button on mobile view [#a36acd7](https://github.com/CodeCorico/allons-y-photos/commit/a36acd7)
+
 <a name="1.0.13"></a>
 # [1.0.13](https://github.com/CodeCorico/allons-y-photos/compare/1.0.12...1.0.13) (2017-03-23)
 
