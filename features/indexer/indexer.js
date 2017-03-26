@@ -122,7 +122,8 @@ module.exports = function($allonsy, $glob, $done) {
             return ext.toUpperCase();
           }).join('|') + ')'))
           .reverse(),
-        photosRef = {};
+        photosRef = {},
+        filesRef = {};
 
     _workingOutput(startDate, count, added, updated, files.length);
 
@@ -207,6 +208,8 @@ module.exports = function($allonsy, $glob, $done) {
 
               return nextFile();
             }
+
+            filesRef[file] = file;
 
             photo = {
               source: file,
@@ -385,11 +388,35 @@ module.exports = function($allonsy, $glob, $done) {
 
             _savePhoto(photoModel, photo, photosIndexes, nextFile);
           }]);
-        }, function() {
+        }, function(nextFunc) {
           _workingOutput(startDate, count, added, updated, files.length);
 
           ExifService.stop();
 
+          var toRemove = [];
+
+          for (var i = 0; i < photos.length; i++) {
+            if (!filesRef[photos[i].source]) {
+              toRemove.push(photos[i].id);
+            }
+          }
+
+          if (!toRemove.length) {
+            return nextFunc();
+          }
+
+          PhotoModel
+            .destroy({
+              id: toRemove
+            })
+            .exec(function(err) {
+              if (err) {
+                _log(logFileOptions, 'can\'t clean photos models with no file');
+              }
+
+              nextFunc();
+            });
+        }, function() {
           EntityModel
             .findOrCreate({
               entityType: 'photosIndexes'
