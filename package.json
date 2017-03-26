@@ -20,6 +20,7 @@
   "dependencies": {
     "allons-y-community": "^1.1.0",
     "async": "^2.1.4",
+    "chokidar": "^1.6.1",
     "extend": "^3.0.0",
     "fluent-ffmpeg": "^2.1.0",
     "fs-extra": "^2.0.0"
