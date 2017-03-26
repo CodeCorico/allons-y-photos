@@ -12,7 +12,9 @@ module.exports = function($allonsy, $glob, $done) {
       INDEXER_VIDEOS_COMPRESS = process.env.INDEXER_VIDEOS_COMPRESS && process.env.INDEXER_VIDEOS_COMPRESS == 'true',
       INDEXER_CONVERT_MOV = process.env.INDEXER_CONVERT_MOV && process.env.INDEXER_CONVERT_MOV == 'true',
       destDir = path.resolve('media/photos'),
-      logFilePath = path.resolve('indexer.log');
+      logFilePath = path.resolve('indexer.log'),
+      _indexInProgress = false,
+      _restart = false;
 
   require(path.resolve(__dirname, 'models/indexer-exif-service-back.js'))();
 
@@ -91,7 +93,30 @@ module.exports = function($allonsy, $glob, $done) {
     }
   }
 
+  function _indexDone() {
+    _indexInProgress = false;
+
+    if (_restart) {
+      async.setImmediate(_index);
+    }
+  }
+
+  function _extractDate(exif) {
+    return exif && exif['Create Date'] && exif['Create Date'] != '0000:00:00 00:00:00' ? exif['Create Date'] : (
+      exif && exif['Media Create Date'] && exif['Media Create Date'] != '0000:00:00 00:00:00' ? exif['Media Create Date'] :
+      null
+    );
+  }
+
   function _index() {
+    if (_indexInProgress) {
+      _restart = true;
+
+      return;
+    }
+
+    _indexInProgress = true;
+
     var PhotoModel = DependencyInjection.injector.controller.get('PhotoModel'),
         EntityModel = DependencyInjection.injector.controller.get('EntityModel'),
         photosThumbsFactory = DependencyInjection.injector.controller.get('photosThumbsFactory'),
@@ -125,6 +150,8 @@ module.exports = function($allonsy, $glob, $done) {
         photosRef = {},
         filesRef = {};
 
+    _restart = false;
+
     _workingOutput(startDate, count, added, updated, files.length);
 
     fs.ensureDirSync(destDir);
@@ -137,7 +164,7 @@ module.exports = function($allonsy, $glob, $done) {
 
           _workingOutput(startDate, files.length, added, updated, files.length, true);
 
-          return;
+          return _indexDone();
         }
 
         photos.forEach(function(photo) {
@@ -255,11 +282,7 @@ module.exports = function($allonsy, $glob, $done) {
             }
 
             _exif(file, function(exif) {
-              dateDir =
-                exif && exif['Create Date'] && exif['Create Date'] != '0000:00:00 00:00:00' ? exif['Create Date'] : (
-                exif && exif['Media Create Date'] && exif['Media Create Date'] != '0000:00:00 00:00:00' ? exif['Media Create Date'] :
-                null
-              );
+              dateDir = _extractDate(exif);
 
               if (dateDir) {
                 dateDir = dateDir.split(' ')[0].replace(/:/g, '');
@@ -417,6 +440,7 @@ module.exports = function($allonsy, $glob, $done) {
               nextFunc();
             });
         }, function() {
+
           EntityModel
             .findOrCreate({
               entityType: 'photosIndexes'
@@ -425,7 +449,9 @@ module.exports = function($allonsy, $glob, $done) {
               if (err || !photosIndexesModel) {
                 _log(logFileOptions, err && err.message || 'no photosIndexes found');
 
-                return _workingOutput(startDate, files.length, added, updated, files.length, true);
+                _workingOutput(startDate, files.length, added, updated, files.length, true);
+
+                return _indexDone();
               }
 
               photosIndexesModel.dates = photosIndexes.dates;
@@ -437,6 +463,8 @@ module.exports = function($allonsy, $glob, $done) {
                 $allonsy.sendMessage({
                   event: 'call(indexer/stop)'
                 });
+
+                _indexDone();
               });
             });
         });
