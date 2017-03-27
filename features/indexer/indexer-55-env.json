@@ -36,7 +36,6 @@
     "type": "input",
     "name": "INDEXER_RECEIVER",
     "message": "Watch and move new photos from this path to the Photos path:",
-    "default": true,
     "when": "INDEXER=true"
   }]
 }
