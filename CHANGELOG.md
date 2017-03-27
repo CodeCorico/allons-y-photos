@@ -1,3 +1,11 @@
+<a name="1.0.15"></a>
+# [1.0.15](https://github.com/CodeCorico/allons-y-photos/compare/1.0.14...1.0.15) (2017-03-27)
+
+### Bug Fixes
+* **indexer env:** remove INDEXER_RECEIVER default [#d7a25ba](https://github.com/CodeCorico/allons-y-photos/commit/d7a25ba)
+* **indexer:** crash when finding new photos [#1770387](https://github.com/CodeCorico/allons-y-photos/commit/1770387)
+* **indexer:** crash at the end of the indexing [#da4a47f](https://github.com/CodeCorico/allons-y-photos/commit/da4a47f)
+
 <a name="1.0.14"></a>
 # [1.0.14](https://github.com/CodeCorico/allons-y-photos/compare/1.0.13...1.0.14) (2017-03-26)
 
