@@ -12,7 +12,7 @@ module.exports = function($allonsy, $glob, $done) {
       INDEXER_VIDEOS = !process.env.INDEXER_VIDEOS || process.env.INDEXER_VIDEOS == 'true',
       INDEXER_VIDEOS_COMPRESS = process.env.INDEXER_VIDEOS_COMPRESS && process.env.INDEXER_VIDEOS_COMPRESS == 'true',
       INDEXER_CONVERT_MOV = process.env.INDEXER_CONVERT_MOV && process.env.INDEXER_CONVERT_MOV == 'true',
-      INDEXER_RECEIVER = INDEXER_RECEIVER ? path.join(process.env.INDEXER_RECEIVER, '*.@(jpeg|jpg|gif|png|mp4|mov)') : null,
+      INDEXER_RECEIVER = process.env.INDEXER_RECEIVER ? path.join(process.env.INDEXER_RECEIVER, '*.@(jpeg|jpg|gif|png|mp4|mov)') : null,
       destDir = path.resolve('media/photos'),
       logFilePath = path.resolve('indexer.log'),
       _activityTimeout = null,
@@ -124,7 +124,7 @@ module.exports = function($allonsy, $glob, $done) {
 
     useFunc();
 
-    async.eachSeries(logFileOptions, files, function(file, _nextFile) {
+    async.eachSeries(files, function(file, _nextFile) {
       file = path.resolve(file);
 
       function nextFile() {
@@ -183,7 +183,7 @@ module.exports = function($allonsy, $glob, $done) {
     _workingOutput(startDate, count, added, updated, '');
 
     _moveNewPhotos(logFileOptions, function() {
-      _workingOutput(startDate, count, added, updated, '', null, '(Moving new photos)');
+      _workingOutput(startDate, count, added, updated, '', null, '(Moving new photos) ');
     }, function() {
       var extensions = ['jpeg', 'jpg', 'gif', 'png'];
 
