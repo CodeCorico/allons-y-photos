@@ -464,62 +464,66 @@ module.exports = function($allonsy, $glob, $done) {
 
               _savePhoto(photoModel, photo, photosIndexes, nextFile);
             }]);
-          }, function(nextFunc) {
-            _workingOutput(startDate, count, added, updated, files.length);
-
-            ExifService.stop();
-
-            var toRemove = [];
-
-            for (var i = 0; i < photos.length; i++) {
-              if (!filesRef[photos[i].source]) {
-                toRemove.push(photos[i].id);
-              }
-            }
-
-            if (!toRemove.length) {
-              return nextFunc();
-            }
-
-            PhotoModel
-              .destroy({
-                id: toRemove
-              })
-              .exec(function(err) {
-                if (err) {
-                  _log(logFileOptions, 'can\'t clean photos models with no file');
-                }
-
-                nextFunc();
-              });
           }, function() {
 
-            EntityModel
-              .findOrCreate({
-                entityType: 'photosIndexes'
-              })
-              .exec(function(err, photosIndexesModel) {
-                if (err || !photosIndexesModel) {
-                  _log(logFileOptions, err && err.message || 'no photosIndexes found');
+            async.waterfall([function(nextFunc) {
 
-                  _workingOutput(startDate, files.length, added, updated, files.length, true);
+              _workingOutput(startDate, count, added, updated, files.length);
 
-                  return _indexDone();
+              ExifService.stop();
+
+              var toRemove = [];
+
+              for (var i = 0; i < photos.length; i++) {
+                if (!filesRef[photos[i].source]) {
+                  toRemove.push(photos[i].id);
                 }
+              }
 
-                photosIndexesModel.dates = photosIndexes.dates;
-                photosIndexesModel.total = photosIndexes.total;
+              if (!toRemove.length) {
+                return nextFunc();
+              }
 
-                photosIndexesModel.save(function() {
-                  _workingOutput(startDate, files.length, added, updated, files.length, true);
+              PhotoModel
+                .destroy({
+                  id: toRemove
+                })
+                .exec(function(err) {
+                  if (err) {
+                    _log(logFileOptions, 'can\'t clean photos models with no file');
+                  }
 
-                  $allonsy.sendMessage({
-                    event: 'call(indexer/stop)'
-                  });
-
-                  _indexDone();
+                  nextFunc();
                 });
-              });
+            }, function() {
+
+              EntityModel
+                .findOrCreate({
+                  entityType: 'photosIndexes'
+                })
+                .exec(function(err, photosIndexesModel) {
+                  if (err || !photosIndexesModel) {
+                    _log(logFileOptions, err && err.message || 'no photosIndexes found');
+
+                    _workingOutput(startDate, files.length, added, updated, files.length, true);
+
+                    return _indexDone();
+                  }
+
+                  photosIndexesModel.dates = photosIndexes.dates;
+                  photosIndexesModel.total = photosIndexes.total;
+
+                  photosIndexesModel.save(function() {
+                    _workingOutput(startDate, files.length, added, updated, files.length, true);
+
+                    $allonsy.sendMessage({
+                      event: 'call(indexer/stop)'
+                    });
+
+                    _indexDone();
+                  });
+                });
+            }]);
           });
 
         });
@@ -533,7 +537,7 @@ module.exports = function($allonsy, $glob, $done) {
   function _activity() {
     clearTimeout(_activityTimeout);
 
-    _activityTimeout = setTimeout(_index, 2000);
+    _activityTimeout = setTimeout(_index, 5000);
   }
 
   $allonsy.requireInFeatures('models/realtime-service');
