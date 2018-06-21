@@ -23,6 +23,12 @@
     "chokidar": "^1.6.1",
     "extend": "^3.0.0",
     "fluent-ffmpeg": "^2.1.0",
-    "fs-extra": "^2.0.0"
-  }
+    "fs-extra": "^2.0.0",
+    "snyk": "^1.83.0"
+  },
+  "scripts": {
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
+  },
+  "snyk": true
 }
